@@ -1,0 +1,6 @@
+--extra-index-url=http://buildsba.lco.gtn/python
+numpy
+flask
+requests
+boto3
+fitsutils
