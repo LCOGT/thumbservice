@@ -7,7 +7,7 @@ from fitsutils.conversions import fits_to_jpg
 app = Flask(__name__)
 
 ARCHIVE_API = 'https://archive-api.lcogt.net/'
-TMP_DIR = '/home/ariba/Documents/code/thumbservice/tmp/'
+TMP_DIR = os.getenv('TMP_DIR', '/tmp')
 BUCKET = 'lcogtthumbnails'
 
 
