@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 from flask import Flask, request, abort
+from flask.ext.cors import CORS
 import requests
 import os
 import boto3
 from fitsutils.conversions import fits_to_jpg
 app = Flask(__name__)
+CORS(app)
 
 ARCHIVE_API = 'https://archive-api.lcogt.net/'
 TMP_DIR = os.getenv('TMP_DIR', '/tmp')

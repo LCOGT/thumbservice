@@ -1,6 +1,7 @@
 --extra-index-url=http://buildsba.lco.gtn/python
 numpy
 flask
+flask-cors
 requests
 boto3
 fitsutils
