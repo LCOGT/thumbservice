@@ -5,11 +5,10 @@ EXPOSE 80
 ENTRYPOINT [ "/usr/bin/supervisord", "-n" ]
 WORKDIR /var/www/thumbservice
 
-RUN apt-get update && apt-get install -y supervisor nginx
+RUN apt-get update && apt-get install -y supervisor nginx && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /var/www/thumbservice
-RUN pip install numpy uwsgi
-RUN pip install -r /var/www/thumbservice/requirements.txt --trusted-host=buildsba.lco.gtn
+RUN pip install numpy uwsgi && pip install -r /var/www/thumbservice/requirements.txt --trusted-host=buildsba.lco.gtn && rm -rf /root/.cache/pip
 
 run echo "daemon off;" >> /etc/nginx/nginx.conf
 run rm /etc/nginx/sites-enabled/default

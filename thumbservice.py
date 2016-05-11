@@ -9,7 +9,7 @@ app = Flask(__name__)
 CORS(app)
 
 ARCHIVE_API = 'https://archive-api.lcogt.net/'
-TMP_DIR = os.getenv('TMP_DIR', '/tmp')
+TMP_DIR = os.getenv('TMP_DIR', '/tmp/')
 BUCKET = 'lcogtthumbnails'
 
 
@@ -60,27 +60,15 @@ def key_exists(key):
         return False
 
 
-@app.route('/<frame_id>/')
-def thumbnail(frame_id):
+def generate_thumbnail(frame, request):
     params = {
         'width': int(request.args.get('width', 200)),
         'height': int(request.args.get('height', 200)),
         'label_text': request.args.get('label')
     }
-    key = key_for_jpeg(frame_id, **params)
+    key = key_for_jpeg(frame['id'], **params)
     if key_exists(key):
         return generate_url(key)
-    # Pass authentication headers through to the archive api
-    headers = {
-        'Authorization': request.headers.get('Authorization')
-    }
-
-    frame = requests.get(
-        '{0}frames/{1}/'.format(ARCHIVE_API, frame_id),
-        headers=headers
-    ).json()
-    if frame.get('detail') == 'Not found.':
-        abort(404)
     path = save_temp_file(frame)
     jpg_path = convert_to_jpg(path, key, **params)
     upload_to_s3(jpg_path)
@@ -89,5 +77,40 @@ def thumbnail(frame_id):
     os.remove(jpg_path)
     return generate_url(key)
 
+
+@app.route('/<frame_basename>/')
+def bn_thumbnail(frame_basename):
+    headers = {
+        'Authorization': request.headers.get('Authorization')
+    }
+    frames = requests.get(
+        '{0}frames/?basename={1}'.format(ARCHIVE_API, frame_basename),
+        headers=headers
+    ).json()
+    if not 0 < frames['count'] < 2:
+        abort(404)
+    return generate_thumbnail(frames['results'][0], request)
+
+
+@app.route('/<int:frame_id>/')
+def thumbnail(frame_id):
+    headers = {
+        'Authorization': request.headers.get('Authorization')
+    }
+    frame = requests.get(
+        '{0}frames/{1}/'.format(ARCHIVE_API, frame_id),
+        headers=headers
+    ).json()
+    if frame.get('detail') == 'Not found.':
+        abort(404)
+    return generate_thumbnail(frame, request)
+
+
+@app.route('/')
+def index():
+    return ((
+        'Please see the documentation for the thumbnail service at '
+        '<a href="https://developers.lcogt.net">developers.lcogt.net</a>'
+    ))
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
