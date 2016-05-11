@@ -69,6 +69,7 @@ def generate_thumbnail(frame, request):
     key = key_for_jpeg(frame['id'], **params)
     if key_exists(key):
         return generate_url(key)
+    # Cfitsio is a bit crappy and can only read data off disk
     path = save_temp_file(frame)
     jpg_path = convert_to_jpg(path, key, **params)
     upload_to_s3(jpg_path)

@@ -3,6 +3,17 @@
 This is a flask application that generates thumbnails from data stored on the
 [LCOGT Science Archive](https://developers.lcogt.net/pages/archive.html).
 
+## Requirements
+
+This script uses amazon S3 to temporarily store images. You'll need a bucket and the
+[correct environmental variables](http://boto3.readthedocs.io/en/latest/guide/quickstart.html#configuration)
+set.
+
+This script also relies on [fits2image](https://github.com/LCOGT/fits2image). Make sure it is installed
+in your virtualenv.
+
+All other dependencies are listed in the requirements.txt file and can be installed with pip.
+
 ## Authorization
 
 The api passes through the `Authorization` header to the archive API. You only need to provide
