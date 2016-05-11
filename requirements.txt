@@ -4,4 +4,4 @@ flask
 flask-cors
 requests
 boto3
-fitsutils
+fits2image

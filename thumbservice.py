@@ -4,7 +4,7 @@ from flask.ext.cors import CORS
 import requests
 import os
 import boto3
-from fitsutils.conversions import fits_to_jpg
+from fits2image.conversions import fits_to_jpg
 app = Flask(__name__)
 CORS(app)
 
