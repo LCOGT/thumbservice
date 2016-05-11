@@ -10,7 +10,7 @@ CORS(app)
 
 ARCHIVE_API = 'https://archive-api.lcogt.net/'
 TMP_DIR = os.getenv('TMP_DIR', '/tmp/')
-BUCKET = 'lcogtthumbnails'
+BUCKET = os.getenv('AWS_S3_BUCKET', 'lcogtthumbnails')
 
 
 def save_temp_file(frame):
