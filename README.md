@@ -29,4 +29,4 @@ They both **return a url** to the thumbnail file that will be good for 1 week.
 
 ## Example
 
-[https://thumbnails.lcogt.net/3863274/?width=500&height=500&label=So many stars!](https://thumbnails.lcogt.net/3863274/?width=500&height=500&label=So many stars!)
+[https://thumbnails.lcogt.net/3863274/?width=500&height=500&label=So%20many%20stars](https://thumbnails.lcogt.net/3863274/?width=500&height=500&label=So%20many%20stars)
