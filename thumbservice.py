@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from flask import Flask, request, abort
+from flask import Flask, request, abort, jsonify
 from flask.ext.cors import CORS
 import requests
 import os
@@ -90,7 +90,8 @@ def bn_thumbnail(frame_basename):
     ).json()
     if not 0 < frames['count'] < 2:
         abort(404)
-    return generate_thumbnail(frames['results'][0], request)
+    url = generate_thumbnail(frames['results'][0], request)
+    return jsonify({'url': url})
 
 
 @app.route('/<int:frame_id>/')
@@ -104,7 +105,8 @@ def thumbnail(frame_id):
     ).json()
     if frame.get('detail') == 'Not found.':
         abort(404)
-    return generate_thumbnail(frame, request)
+    url = generate_thumbnail(frame, request)
+    return jsonify({'url': url})
 
 
 @app.route('/')
