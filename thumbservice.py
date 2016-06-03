@@ -91,7 +91,7 @@ def bn_thumbnail(frame_basename):
     if not 0 < frames['count'] < 2:
         abort(404)
     url = generate_thumbnail(frames['results'][0], request)
-    return jsonify({'url': url})
+    return jsonify({'url': url, 'propid': frames['results'][0]['PROPID']})
 
 
 @app.route('/<int:frame_id>/')
@@ -106,7 +106,7 @@ def thumbnail(frame_id):
     if frame.get('detail') == 'Not found.':
         abort(404)
     url = generate_thumbnail(frame, request)
-    return jsonify({'url': url})
+    return jsonify({'url': url, 'propid': frame['PROPID']})
 
 
 @app.route('/')
