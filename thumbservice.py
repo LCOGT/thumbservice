@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from flask import Flask, request, abort, jsonify
+from flask import Flask, request, abort, jsonify, send_file
 from flask.ext.cors import CORS
 import requests
 import os
@@ -79,6 +79,17 @@ def generate_thumbnail(frame, request):
     return generate_url(key)
 
 
+def handle_response(frame, request):
+    url = generate_thumbnail(frame, request)
+    if request.args.get('image'):
+        r = requests.get(url, stream=True)
+        return send_file(
+            r.raw, attachment_filename=str(frame['basename'] + '.jpg')
+        )
+    else:
+        return jsonify({'url': url, 'propid': frame['PROPID']})
+
+
 @app.route('/<frame_basename>/')
 def bn_thumbnail(frame_basename):
     headers = {
@@ -90,8 +101,7 @@ def bn_thumbnail(frame_basename):
     ).json()
     if not 0 < frames['count'] < 2:
         abort(404)
-    url = generate_thumbnail(frames['results'][0], request)
-    return jsonify({'url': url, 'propid': frames['results'][0]['PROPID']})
+    return handle_response(frames['results'][0], request)
 
 
 @app.route('/<int:frame_id>/')
@@ -105,8 +115,7 @@ def thumbnail(frame_id):
     ).json()
     if frame.get('detail') == 'Not found.':
         abort(404)
-    url = generate_thumbnail(frame, request)
-    return jsonify({'url': url, 'propid': frame['PROPID']})
+    return handle_response(frame, request)
 
 
 @app.route('/')
