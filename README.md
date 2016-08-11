@@ -32,12 +32,21 @@ Both endpoints take 3 query parameters:
 * width
 * height
 * label
+* image
 
 Width and height are in pixels, label will appear as white text in the lower left had corner of the image.
 
-They both **return a url** to the thumbnail file that will be good for 1 week.
+They both **return a url** to the thumbnail file that will be good for 1 week unless the `image` parameter
+is supplied which will return an image directly.
 
 
 ## Example
 
 [https://thumbnails.lcogt.net/3863274/?width=500&height=500&label=So%20many%20stars](https://thumbnails.lcogt.net/3863274/?width=500&height=500&label=So%20many%20stars)
+
+## Changelog
+
+### 1.1
+2016-08-11
+Added `image` url parameter to return image directly instead of json. Useful
+for using as the src attribute in img tags.
