@@ -46,6 +46,11 @@ is supplied which will return an image directly.
 
 ## Changelog
 
+### 2.0
+2016-08-17
+Added color image support! Use ?color=True for frames which belong to a request that have other exposures
+using red, visual and blue filters.
+
 ### 1.1
 2016-08-11
 Added `image` url parameter to return image directly instead of json. Useful
