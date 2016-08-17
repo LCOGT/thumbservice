@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from flask import Flask, request, abort, jsonify, send_file
-from flask.ext.cors import CORS
+from flask_cors import CORS
 import requests
 import os
 import boto3
