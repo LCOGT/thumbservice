@@ -21,12 +21,14 @@ def save_temp_file(frame):
 
 
 def key_for_jpeg(frame_id, **params):
-    return '{0}.{width}x{height}-{label_text}.jpg'.format(frame_id, **params)
+    return '{0}.{width}x{height}-{color}-{label_text}.jpg'.format(
+        frame_id, **params
+    )
 
 
-def convert_to_jpg(path, key, **params):
-    jpg_path = os.path.dirname(path) + '/' + key
-    fits_to_jpg(path, jpg_path, **params)
+def convert_to_jpg(paths, key, **params):
+    jpg_path = os.path.dirname(paths[0]) + '/' + key
+    fits_to_jpg(paths, jpg_path, **params)
     return jpg_path
 
 
@@ -60,22 +62,57 @@ def key_exists(key):
         return False
 
 
+def frames_for_requestnum(reqnum, request):
+    headers = {
+        'Authorization': request.headers.get('Authorization')
+    }
+    frames = requests.get(
+        '{0}frames/?REQNUM={1}'.format(ARCHIVE_API, reqnum),
+        headers=headers
+    ).json()
+    return frames['results']
+
+
+def rvb_frames(frames):
+    FILTERS = {
+        'red': ['R', 'rp'],
+        'visual': ['V'],
+        'blue': ['B'],
+    }
+
+    selected_frames = []
+    for color in ['red', 'visual', 'blue']:
+        try:
+            selected_frames.append(
+                next(f for f in frames if f['FILTER'] in FILTERS[color])
+            )
+        except StopIteration:
+            abort(404)
+    return selected_frames
+
+
 def generate_thumbnail(frame, request):
     params = {
         'width': int(request.args.get('width', 200)),
         'height': int(request.args.get('height', 200)),
-        'label_text': request.args.get('label')
+        'label_text': request.args.get('label'),
+        'color': request.args.get('color', 'false') != 'false',
     }
     key = key_for_jpeg(frame['id'], **params)
     if key_exists(key):
         return generate_url(key)
     # Cfitsio is a bit crappy and can only read data off disk
-    path = save_temp_file(frame)
-    jpg_path = convert_to_jpg(path, key, **params)
+    if not params['color']:
+        paths = [save_temp_file(frame)]
+    else:
+        reqnum_frames = frames_for_requestnum(frame['REQNUM'], request)
+        paths = [save_temp_file(frame) for frame in rvb_frames(reqnum_frames)]
+    jpg_path = convert_to_jpg(paths, key, **params)
     upload_to_s3(jpg_path)
     # Cleanup actions
-    os.remove(path)
     os.remove(jpg_path)
+    for path in paths:
+        os.remove(path)
     return generate_url(key)
 
 
