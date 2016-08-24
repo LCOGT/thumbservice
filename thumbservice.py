@@ -69,8 +69,14 @@ def frames_for_requestnum(reqnum, request):
     frames = requests.get(
         '{0}frames/?REQNUM={1}'.format(ARCHIVE_API, reqnum),
         headers=headers
-    ).json()
-    return frames['results']
+    ).json()['results']
+    if any(f for f in frames if f['RLEVEL'] == 91):
+        rlevel = 91
+    elif any(f for f in frames if f['RLEVEL'] == 11):
+        rlevel = 11
+    else:
+        rlevel = 0
+    return [f for f in frames if f['RLEVEL'] == rlevel]
 
 
 def rvb_frames(frames):
