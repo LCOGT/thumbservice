@@ -45,6 +45,9 @@ is supplied which will return an image directly.
 [https://thumbnails.lcogt.net/3863274/?width=500&height=500&label=So%20many%20stars](https://thumbnails.lcogt.net/3863274/?width=500&height=500&label=So%20many%20stars)
 
 ## Changelog
+### 2.2
+2017-02-27
+Added median filtering support
 
 ### 2.1
 2016-08-24
