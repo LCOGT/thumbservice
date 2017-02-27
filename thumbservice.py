@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from flask import Flask, request, abort, jsonify, send_file
-from flask.ext.cors import CORS
+from flask_cors import CORS
 import requests
 import os
 import boto3
@@ -69,8 +69,14 @@ def frames_for_requestnum(reqnum, request):
     frames = requests.get(
         '{0}frames/?REQNUM={1}'.format(ARCHIVE_API, reqnum),
         headers=headers
-    ).json()
-    return frames['results']
+    ).json()['results']
+    if any(f for f in frames if f['RLEVEL'] == 91):
+        rlevel = 91
+    elif any(f for f in frames if f['RLEVEL'] == 11):
+        rlevel = 11
+    else:
+        rlevel = 0
+    return [f for f in frames if f['RLEVEL'] == rlevel]
 
 
 def rvb_frames(frames):
