@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from flask import Flask, request, abort, jsonify, send_file
-from flask_cors import CORS
+from flask.ext.cors import CORS
 import requests
 import os
 import boto3
@@ -69,14 +69,8 @@ def frames_for_requestnum(reqnum, request):
     frames = requests.get(
         '{0}frames/?REQNUM={1}'.format(ARCHIVE_API, reqnum),
         headers=headers
-    ).json()['results']
-    if any(f for f in frames if f['RLEVEL'] == 91):
-        rlevel = 91
-    elif any(f for f in frames if f['RLEVEL'] == 11):
-        rlevel = 11
-    else:
-        rlevel = 0
-    return [f for f in frames if f['RLEVEL'] == rlevel]
+    ).json()
+    return frames['results']
 
 
 def rvb_frames(frames):
@@ -103,6 +97,8 @@ def generate_thumbnail(frame, request):
         'height': int(request.args.get('height', 200)),
         'label_text': request.args.get('label'),
         'color': request.args.get('color', 'false') != 'false',
+        'median': request.args.get('median', 'false') != 'false',
+        'percentile': float(request.args.get('percentile', 99.5)),
     }
     key = key_for_jpeg(frame['id'], **params)
     if key_exists(key):
@@ -165,7 +161,7 @@ def thumbnail(frame_id):
 def index():
     return ((
         'Please see the documentation for the thumbnail service at '
-        '<a href="https://developers.lcogt.net">developers.lcogt.net</a>'
+        '<a href="https://developers.lco.global">developers.lco.global</a>'
     ))
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
