@@ -8,7 +8,7 @@ from fits2image.conversions import fits_to_jpg
 app = Flask(__name__)
 CORS(app)
 
-ARCHIVE_API = 'https://archive-api.lcogt.net/'
+ARCHIVE_API = 'https://archive-api.lco.global/'
 TMP_DIR = os.getenv('TMP_DIR', '/tmp/')
 BUCKET = os.getenv('AWS_S3_BUCKET', 'lcogtthumbnails')
 
@@ -154,10 +154,13 @@ def thumbnail(frame_id):
     headers = {
         'Authorization': request.headers.get('Authorization')
     }
+    print('{0}frames/{1}/'.format(ARCHIVE_API, frame_id))
     frame = requests.get(
         '{0}frames/{1}/'.format(ARCHIVE_API, frame_id),
         headers=headers
     ).json()
+    print(headers)
+    print(frame)
     if frame.get('detail') == 'Not found.':
         abort(404)
     return handle_response(frame, request)
