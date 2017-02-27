@@ -103,6 +103,8 @@ def generate_thumbnail(frame, request):
         'height': int(request.args.get('height', 200)),
         'label_text': request.args.get('label'),
         'color': request.args.get('color', 'false') != 'false',
+        'median': request.args.get('median', 'false') != 'false',
+        'percentile': float(request.args.get('percentile', 99.5)),
     }
     key = key_for_jpeg(frame['id'], **params)
     if key_exists(key):
@@ -165,7 +167,7 @@ def thumbnail(frame_id):
 def index():
     return ((
         'Please see the documentation for the thumbnail service at '
-        '<a href="https://developers.lcogt.net">developers.lcogt.net</a>'
+        '<a href="https://developers.lco.global">developers.lco.global</a>'
     ))
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
