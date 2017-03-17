@@ -21,9 +21,7 @@ def save_temp_file(frame):
 
 
 def key_for_jpeg(frame_id, **params):
-    return '{0}.{width}x{height}-{color}-{label_text}.jpg'.format(
-        frame_id, **params
-    )
+    return '{0}.{1}.jpg'.format(frame_id, hash(frozenset(params.items())))
 
 
 def convert_to_jpg(paths, key, **params):
@@ -105,6 +103,7 @@ def generate_thumbnail(frame, request):
         'color': request.args.get('color', 'false') != 'false',
         'median': request.args.get('median', 'false') != 'false',
         'percentile': float(request.args.get('percentile', 99.5)),
+        'quality': int(request.args.get('quality', 80)),
     }
     key = key_for_jpeg(frame['id'], **params)
     if key_exists(key):
