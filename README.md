@@ -45,6 +45,11 @@ is supplied which will return an image directly.
 [https://thumbnails.lcogt.net/3863274/?width=500&height=500&label=So%20many%20stars](https://thumbnails.lcogt.net/3863274/?width=500&height=500&label=So%20many%20stars)
 
 ## Changelog
+### 2.3
+2017-03-17
+Add quality paramter and reduce default quality. Improves speed without a noticeable change in image quality.
+Improve filename key so that any differnt combination of parameters will reuslt in a new image.
+
 ### 2.2
 2017-02-27
 Added median filtering support
