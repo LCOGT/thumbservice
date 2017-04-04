@@ -45,6 +45,10 @@ is supplied which will return an image directly.
 [https://thumbnails.lcogt.net/3863274/?width=500&height=500&label=So%20many%20stars](https://thumbnails.lcogt.net/3863274/?width=500&height=500&label=So%20many%20stars)
 
 ## Changelog
+### 2.4
+2017-04-04
+Add better exception handling to clean up temporary files even if generation fails.
+
 ### 2.3
 2017-03-17
 Add quality paramter and reduce default quality. Improves speed without a noticeable change in image quality.

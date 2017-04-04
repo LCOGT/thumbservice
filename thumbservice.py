@@ -109,17 +109,21 @@ def generate_thumbnail(frame, request):
     if key_exists(key):
         return generate_url(key)
     # Cfitsio is a bit crappy and can only read data off disk
-    if not params['color']:
-        paths = [save_temp_file(frame)]
-    else:
-        reqnum_frames = frames_for_requestnum(frame['REQNUM'], request)
-        paths = [save_temp_file(frame) for frame in rvb_frames(reqnum_frames)]
-    jpg_path = convert_to_jpg(paths, key, **params)
-    upload_to_s3(jpg_path)
-    # Cleanup actions
-    os.remove(jpg_path)
-    for path in paths:
-        os.remove(path)
+    jpg_path = None
+    try:
+        if not params['color']:
+            paths = [save_temp_file(frame)]
+        else:
+            reqnum_frames = frames_for_requestnum(frame['REQNUM'], request)
+            paths = [save_temp_file(frame) for frame in rvb_frames(reqnum_frames)]
+        jpg_path = convert_to_jpg(paths, key, **params)
+        upload_to_s3(jpg_path)
+    finally:
+        # Cleanup actions
+        if jpg_path:
+            os.remove(jpg_path)
+        for path in paths:
+            os.remove(path)
     return generate_url(key)
 
 
@@ -153,13 +157,10 @@ def thumbnail(frame_id):
     headers = {
         'Authorization': request.headers.get('Authorization')
     }
-    print('{0}frames/{1}/'.format(ARCHIVE_API, frame_id))
     frame = requests.get(
         '{0}frames/{1}/'.format(ARCHIVE_API, frame_id),
         headers=headers
     ).json()
-    print(headers)
-    print(frame)
     if frame.get('detail') == 'Not found.':
         abort(404)
     return handle_response(frame, request)
