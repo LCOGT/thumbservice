@@ -45,6 +45,10 @@ is supplied which will return an image directly.
 [https://thumbnails.lcogt.net/3863274/?width=500&height=500&label=So%20many%20stars](https://thumbnails.lcogt.net/3863274/?width=500&height=500&label=So%20many%20stars)
 
 ## Changelog
+### 2.5
+2017-05-15
+Upgrade Dockerfile to be more sensible, upgrade to python 3.6
+
 ### 2.4
 2017-04-04
 Add better exception handling to clean up temporary files even if generation fails.
