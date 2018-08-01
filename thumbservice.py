@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from flask import Flask, request, abort, jsonify, send_file
+from flask import Flask, request, abort, jsonify, redirect
 from flask_cors import CORS
 import requests
 import os
@@ -130,10 +130,7 @@ def generate_thumbnail(frame, request):
 def handle_response(frame, request):
     url = generate_thumbnail(frame, request)
     if request.args.get('image'):
-        r = requests.get(url, stream=True)
-        return send_file(
-            r.raw, attachment_filename=str(frame['basename'] + '.jpg')
-        )
+        return redirect(url)
     else:
         return jsonify({'url': url, 'propid': frame['PROPID']})
 
