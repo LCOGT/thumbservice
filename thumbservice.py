@@ -5,6 +5,8 @@ import requests
 import os
 import boto3
 from fits2image.conversions import fits_to_jpg
+from fits_align.ident import make_transforms
+from fits_align.align import affineremap
 app = Flask(__name__)
 CORS(app)
 
@@ -94,6 +96,19 @@ def rvb_frames(frames):
             abort(404)
     return selected_frames
 
+def reproject_files(ref_image, images_to_align):
+    identifications = make_transforms(ref_image, images_to_align[1:3])
+
+    aligned_images = []
+    for id in identifications:
+        if id.ok:
+            aligned_img = affineremap(id.ukn.filepath, id.trans, outdir=TMP_DIR)
+            aligned_images.append(aligned_img)
+
+    img_list = [ref_image]+aligned_images
+    if len(img_list) != 3:
+        return images_to_align
+    return img_list
 
 def generate_thumbnail(frame, request):
     params = {
@@ -116,6 +131,7 @@ def generate_thumbnail(frame, request):
         else:
             reqnum_frames = frames_for_requestnum(frame['REQNUM'], request)
             paths = [save_temp_file(frame) for frame in rvb_frames(reqnum_frames)]
+            paths = reproject_files(paths[0], paths)
         jpg_path = convert_to_jpg(paths, key, **params)
         upload_to_s3(jpg_path)
     finally:
