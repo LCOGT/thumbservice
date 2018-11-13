@@ -45,6 +45,12 @@ is supplied which will return an image directly.
 [https://thumbnails.lcogt.net/3863274/?width=500&height=500&label=So%20many%20stars](https://thumbnails.lcogt.net/3863274/?width=500&height=500&label=So%20many%20stars)
 
 ## Changelog
+
+### 2.9
+2018-11-13
+Upgrade requests
+Initialize a variable that could have been referenced before assignment
+
 ### 2.5
 2017-05-15
 Upgrade Dockerfile to be more sensible, upgrade to python 3.6
