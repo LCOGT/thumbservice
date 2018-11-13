@@ -2,7 +2,7 @@
 numpy>=1.15,<1.16
 flask>=0.12,<0.13
 flask-cors>=3,<4
-requests>=2.13,<2.14
+requests>=2.20,<2.21
 boto3>=1.4,<1.5
 fits2image
 fits_align
