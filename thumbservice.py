@@ -125,6 +125,7 @@ def generate_thumbnail(frame, request):
         return generate_url(key)
     # Cfitsio is a bit crappy and can only read data off disk
     jpg_path = None
+    paths = []
     try:
         if not params['color']:
             paths = [save_temp_file(frame)]
