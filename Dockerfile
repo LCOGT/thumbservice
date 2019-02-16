@@ -6,8 +6,8 @@ CMD gunicorn -k gevent -w 2 thumbservice:app -b 0.0.0.0:80
 WORKDIR /var/www/thumbservice
 
 COPY requirements.txt /var/www/thumbservice
-RUN apk --no-cache add libjpeg-turbo libpng zlib \
-        && apk --no-cache add --virtual .build-deps gcc libjpeg-turbo-dev libpng-dev make musl-dev zlib-dev \
+RUN apk --no-cache add freetype libjpeg-turbo libpng zlib \
+        && apk --no-cache add --virtual .build-deps freetype-dev gcc libjpeg-turbo-dev libpng-dev make musl-dev zlib-dev \
         && pip --no-cache-dir install numpy \
         && pip --no-cache-dir install -r /var/www/thumbservice/requirements.txt --trusted-host=buildsba.lco.gtn \
         && apk --no-cache del .build-deps
