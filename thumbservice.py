@@ -122,7 +122,7 @@ def key_for_jpeg(frame_id, **params):
 
 
 def convert_to_jpg(paths, key, **params):
-    jpg_path = os.path.dirname(paths[0]) + '/' + get_unique_id() + '-' + key
+    jpg_path = f'{os.path.dirname(paths[0])}/{get_unique_id()}-{key}'
     fits_to_jpg(paths, jpg_path, **params)
     return jpg_path
 
