@@ -14,6 +14,8 @@ in your virtualenv.
 
 All other dependencies are listed in the requirements.txt file and can be installed with pip.
 
+Run the tests with `pytest tests.py`.
+
 ## Authorization
 
 The api passes through the `Authorization` header to the archive API. You only need to provide

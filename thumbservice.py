@@ -216,7 +216,7 @@ def reproject_files(ref_image, images_to_align):
 
 
 class Paths:
-    """Keep a record of all paths ever set"""
+    """Retain all paths set"""
     def __init__(self):
         self._all_paths = set()
         self.paths = []
