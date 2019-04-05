@@ -64,6 +64,14 @@ def handle_thumbnail_app_exception(error):
     return response
 
 
+@app.errorhandler(Exception)
+def handle_broad_exceptions(error):
+    app.logger.error(error, exc_info=True)
+    response = jsonify({'message': 'Internal server error'})
+    response.status_code = 500
+    return response
+
+
 def get_response(url, params=None, headers=None):
     response = None
     try:
@@ -115,7 +123,7 @@ def can_generate_thumbnail_on(frame, request):
         return {'result': False, 'reason': f'Cannot generate color thumbnail for OBSTYPE={obstype}'}
 
     if not is_fits_file:
-        return {'result': False, 'reason': 'Cannot generate thumbnail for non FITS-type image'}
+        return {'result': False, 'reason': 'Cannot generate thumbnail for non FITS-type frame'}
 
     return {'result': True, 'reason': ''}
 
