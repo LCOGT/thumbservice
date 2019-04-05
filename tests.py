@@ -1,5 +1,6 @@
 import mock
 from pathlib import Path
+from copy import deepcopy
 from collections import namedtuple
 
 import boto3
@@ -113,12 +114,20 @@ def mock_fits_to_jpeg():
     m.side_effect = side_effect
 
 
+def make_tmp_file(tmp_path, filename, suffix):
+    path = tmp_path / Path(filename).with_suffix(suffix)
+    path.touch()
+    return str(path)
+
+
 @pytest.fixture(autouse=True)
-def mock_affineremap(tmp_path):
+def mock_affineremap(tmp_path, request):
+    if 'no_auto_mock_affineremap' in request.keywords:
+        return
+
     def side_effect(*args, **kwargs):
-        path = tmp_path / Path(args[0]).with_suffix('.affineremap')
-        path.touch()
-        return str(path)
+        return make_tmp_file(tmp_path, args[0], '.affineremap')
+
     m = thumbservice.affineremap = mock.MagicMock()
     m.side_effect = side_effect
 
@@ -157,7 +166,7 @@ def test_get_index(thumbservice_client):
 
 
 def test_generate_black_and_white_thumbnail_successfully(thumbservice_client, requests_mock, s3_client, tmp_path):
-    frame = _test_data['frame'].copy()
+    frame = deepcopy(_test_data['frame'])
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
     requests_mock.get(frame['url'], content=b'I Am Image')
     response1 = thumbservice_client.get(f'/{frame["id"]}/')
@@ -178,10 +187,10 @@ def test_generate_black_and_white_thumbnail_successfully(thumbservice_client, re
 
 
 def test_generate_color_thumbnail_successfully(thumbservice_client, requests_mock, s3_client, tmp_path):
-    frame = _test_data['frame'].copy()
-    request_frames = _test_data['request_frames'].copy()
+    frame = deepcopy(_test_data['frame'])
+    request_frames = deepcopy(_test_data['request_frames'])
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
-    requests_mock.get(f'{TEST_API_URL}frames/?REQNUM={frame["REQNUM"]}', json=request_frames)
+    requests_mock.get(f'{TEST_API_URL}frames/?REQNUM={frame["REQNUM"]}&RLEVEL=91', json=request_frames)
     for request_frame in request_frames['results']:
         requests_mock.get(request_frame['url'], content=b'I Am Image')
     response1 = thumbservice_client.get(f'/{frame["id"]}/?color=true')
@@ -201,13 +210,31 @@ def test_generate_color_thumbnail_successfully(thumbservice_client, requests_moc
     assert len(list(tmp_path.glob('*'))) == 0
 
 
-def test_filters_for_color_thumbnail_not_available(thumbservice_client, requests_mock, s3_client, tmp_path):
-    frame = _test_data['frame'].copy()
-    request_frames = _test_data['request_frames'].copy()
+@pytest.mark.no_auto_mock_affineremap
+def test_image_align_fails_falls_back_to_original_image_list(thumbservice_client, requests_mock, tmp_path, s3_client):
+    m = thumbservice.affineremap = mock.MagicMock()
+    m.side_effect = [make_tmp_file(tmp_path, 'tmp', '.fits'), Exception('Something bad happened')]
+    frame = deepcopy(_test_data['frame'])
+    request_frames = deepcopy(_test_data['request_frames'])
+    requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
+    requests_mock.get(f'{TEST_API_URL}frames/?REQNUM={frame["REQNUM"]}&RLEVEL=91', json=request_frames)
+    for request_frame in request_frames['results']:
+        requests_mock.get(request_frame['url'], content=b'I Am Image')
+    response = thumbservice_client.get(f'/{frame["id"]}/?color=true')
+    response_as_json = response.get_json()
+    assert 'url' in response_as_json
+    assert response_as_json['propid'] == frame['PROPID']
+    assert response.status_code == 200
+    assert len(list(tmp_path.glob('*'))) == 0
+
+
+def test_all_filters_for_color_thumbnail_not_available(thumbservice_client, requests_mock, s3_client, tmp_path):
+    frame = deepcopy(_test_data['frame'])
+    request_frames = deepcopy(_test_data['request_frames'])
     request_frames['results'].pop()
     request_frames['results'].pop()
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
-    requests_mock.get(f'{TEST_API_URL}frames/?REQNUM={frame["REQNUM"]}', json=request_frames)
+    requests_mock.get(f'{TEST_API_URL}frames/?REQNUM={frame["REQNUM"]}&RLEVEL=91', json=request_frames)
     response = thumbservice_client.get(f'/{frame["id"]}/?color=true')
     assert response.status_code == 404
     assert b'RVB frames not found' in response.data
@@ -215,9 +242,9 @@ def test_filters_for_color_thumbnail_not_available(thumbservice_client, requests
 
 
 def test_reduced_frames_for_color_thumbnail_not_available(thumbservice_client, requests_mock, s3_client, tmp_path):
-    frame = _test_data['frame'].copy()
+    frame = deepcopy(_test_data['frame'])
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
-    requests_mock.get(f'{TEST_API_URL}frames/?REQNUM={frame["REQNUM"]}', json={'results': []})
+    requests_mock.get(f'{TEST_API_URL}frames/?REQNUM={frame["REQNUM"]}&RLEVEL=91', json={'results': []})
     response = thumbservice_client.get(f'/{frame["id"]}/?color=true')
     assert response.status_code == 404
     assert b'RVB frames not found' in response.data
@@ -225,7 +252,7 @@ def test_reduced_frames_for_color_thumbnail_not_available(thumbservice_client, r
 
 
 def test_cannot_generate_thumbnail_for_non_image_obstypes(thumbservice_client, requests_mock, tmp_path, s3_client):
-    frame = _test_data['frame'].copy()
+    frame = deepcopy(_test_data['frame'])
     frame['OBSTYPE'] = 'CATALOG'
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
     response = thumbservice_client.get(f'/{frame["id"]}/')
@@ -235,7 +262,7 @@ def test_cannot_generate_thumbnail_for_non_image_obstypes(thumbservice_client, r
 
 
 def test_cannot_generate_color_thumbnail_for_all_valid_obstypes(thumbservice_client, requests_mock, tmp_path, s3_client):
-    frame = _test_data['frame'].copy()
+    frame = deepcopy(_test_data['frame'])
     frame['OBSTYPE'] = 'SPECTRUM'
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
     response = thumbservice_client.get(f'/{frame["id"]}/?color=true')
@@ -245,7 +272,7 @@ def test_cannot_generate_color_thumbnail_for_all_valid_obstypes(thumbservice_cli
 
 
 def test_cannot_generate_thumbnail_for_non_fits_file(thumbservice_client, requests_mock, tmp_path, s3_client):
-    frame = _test_data['frame'].copy()
+    frame = deepcopy(_test_data['frame'])
     frame['filename'] = 'OGG_calib_0001760408_ftn_20190331_58574.tar.gz'
     frame['OBSTYPE'] = 'SPECTRUM'
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
@@ -256,7 +283,7 @@ def test_cannot_generate_thumbnail_for_non_fits_file(thumbservice_client, reques
 
 
 def test_cannot_generate_color_thumbnail_not_associated_with_a_request(thumbservice_client, requests_mock, tmp_path, s3_client):
-    frame = _test_data['frame'].copy()
+    frame = deepcopy(_test_data['frame'])
     frame['REQNUM'] = None
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
     response = thumbservice_client.get(f'/{frame["id"]}/?color=true')
@@ -266,7 +293,7 @@ def test_cannot_generate_color_thumbnail_not_associated_with_a_request(thumbserv
 
 
 def test_cannot_generate_color_thumbnail_with_incomplete_frame_info(thumbservice_client, requests_mock, tmp_path, s3_client):
-    frame = _test_data['frame'].copy()
+    frame = deepcopy(_test_data['frame'])
     del frame['REQNUM']
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
     response = thumbservice_client.get(f'/{frame["id"]}/')

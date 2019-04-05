@@ -209,15 +209,22 @@ def rvb_frames(frames):
 
 
 def reproject_files(ref_image, images_to_align):
-    identifications = make_transforms(ref_image, images_to_align[1:3])
-
     aligned_images = []
-    for id in identifications:
-        if id.ok:
-            aligned_img = affineremap(id.ukn.filepath, id.trans, outdir=settings.TMP_DIR)
-            aligned_images.append(aligned_img)
-    img_list = [ref_image]+aligned_images
 
+    try:
+        identifications = make_transforms(ref_image, images_to_align[1:3])
+        for id in identifications:
+            if id.ok:
+                aligned_img = affineremap(id.ukn.filepath, id.trans, outdir=settings.TMP_DIR)
+                aligned_images.append(aligned_img)
+    except Exception:
+        app.logger.error('Error aligning images, falling back to original image list', exc_info=True)
+        # Clean up any images that were created
+        for image in aligned_images:
+            if os.path.exists(image):
+                os.remove(image)
+
+    img_list = [ref_image]+aligned_images
     if len(img_list) != 3:
         return images_to_align
     return img_list
