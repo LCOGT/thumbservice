@@ -13,23 +13,6 @@ from fits_align.align import affineremap
 app = Flask(__name__)
 CORS(app)
 
-IMAGE_OBSTYPES = (
-    'ARC',
-    'BIAS',
-    'BPM',
-    'DARK',
-    'DOUBLE',
-    'EXPERIMENTAL',
-    'EXPOSE',
-    'GUIDE',
-    'LAMPFLAT',
-    'SKYFLAT',
-    'SPECTRUM',
-    'STANDARD',
-    'TARGET',
-    'TRAILED',
-)
-
 
 class Settings:
     def __init__(self, settings=None):
@@ -88,15 +71,18 @@ def get_response(url, params=None, headers=None):
         response.raise_for_status()
     except requests.RequestException:
         status_code = getattr(response, 'status_code', None)
-        payload = {'url': url}
+        payload = {}
+        message = 'Got error response'
         if status_code is None or 500 <= status_code < 600:
             status_code = 502
+        elif status_code == 404:
+            message = 'Not found'
         else:
             try:
                 payload['response'] = response.json()
             except:
                 pass
-        raise ThumbnailAppException('Got invalid response', status_code=status_code, payload=payload)
+        raise ThumbnailAppException(message, status_code=status_code, payload=payload)
     return response
 
 
@@ -104,10 +90,34 @@ def get_unique_id():
     return uuid.uuid4().hex
 
 
-def can_generate_thumbnail_on(frame):
-    is_fits = any([frame.get('filename', '').endswith(ext) for ext in ['.fits', '.fits.fz']])
-    is_correct_obstype = frame.get('OBSTYPE', '').upper() in IMAGE_OBSTYPES
-    return is_correct_obstype and is_fits
+def can_generate_thumbnail_on(frame, request):
+    frame_has_required_validation_keys = all([key in frame.keys() for key in ['OBSTYPE', 'REQNUM', 'filename']])
+    if not frame_has_required_validation_keys:
+        return {'result': False, 'reason': 'Cannot generate thumbnail for given frame'}
+
+    valid_obstypes = [
+        'ARC', 'BIAS', 'BPM', 'DARK', 'DOUBLE', 'EXPERIMENTAL', 'EXPOSE', 'GUIDE', 'LAMPFLAT', 'SKYFLAT',
+        'SPECTRUM', 'STANDARD', 'TARGET', 'TRAILED'
+    ]
+    valid_obstypes_for_color_thumbs = ['EXPOSE', 'STANDARD']
+    obstype = frame.get('OBSTYPE').upper()
+    reqnum = frame.get('REQNUM')
+    is_color_request = request.args.get('color', 'false') == 'true'
+    is_fits_file = any([frame.get('filename').endswith(ext) for ext in ['.fits', '.fits.fz']])
+
+    if obstype not in valid_obstypes:
+        return {'result': False, 'reason': f'Cannot generate thumbnail for OBSTYPE={obstype}'}
+
+    if is_color_request and not reqnum:
+        return {'result': False, 'reason': 'Cannot generate color thumbnail for a frame that does not have a request'}
+
+    if is_color_request and obstype not in valid_obstypes_for_color_thumbs:
+        return {'result': False, 'reason': f'Cannot generate color thumbnail for OBSTYPE={obstype}'}
+
+    if not is_fits_file:
+        return {'result': False, 'reason': 'Cannot generate thumbnail for non FITS-type image'}
+
+    return {'result': True, 'reason': ''}
 
 
 def save_temp_file(frame):
@@ -165,22 +175,12 @@ def key_exists(key):
         return False
 
 
-def frames_for_requestnum(reqnum, request):
+def frames_for_requestnum(reqnum, request, rlevel):
     headers = {
         'Authorization': request.headers.get('Authorization')
     }
-    frames = get_response(
-        f'{settings.ARCHIVE_API}frames/',
-        params={'REQNUM': reqnum},
-        headers=headers
-    ).json()['results']
-    if any(f for f in frames if f['RLEVEL'] == 91):
-        rlevel = 91
-    elif any(f for f in frames if f['RLEVEL'] == 11):
-        rlevel = 11
-    else:
-        rlevel = 0
-    return [f for f in frames if f['RLEVEL'] == rlevel]
+    params = {'REQNUM': reqnum, 'RLEVEL': rlevel}
+    return get_response(f'{settings.ARCHIVE_API}frames/', params=params, headers=headers).json()['results']
 
 
 def rvb_frames(frames):
@@ -208,8 +208,8 @@ def reproject_files(ref_image, images_to_align):
         if id.ok:
             aligned_img = affineremap(id.ukn.filepath, id.trans, outdir=settings.TMP_DIR)
             aligned_images.append(aligned_img)
-
     img_list = [ref_image]+aligned_images
+
     if len(img_list) != 3:
         return images_to_align
     return img_list
@@ -251,7 +251,8 @@ def generate_thumbnail(frame, request):
         if not params['color']:
             paths.set([save_temp_file(frame)])
         else:
-            reqnum_frames = frames_for_requestnum(frame['REQNUM'], request)
+            # Color thumbnails can only be generated on rlevel 91 images
+            reqnum_frames = frames_for_requestnum(frame['REQNUM'], request, rlevel=91)
             paths.set([save_temp_file(frame) for frame in rvb_frames(reqnum_frames)])
             paths.set(reproject_files(paths.paths[0], paths.paths))
         jpg_path = convert_to_jpg(paths.paths, key, **params)
@@ -267,8 +268,9 @@ def generate_thumbnail(frame, request):
 
 
 def handle_response(frame, request):
-    if not can_generate_thumbnail_on(frame):
-        raise ThumbnailAppException('Cannot generate thumbnail on given frame', status_code=400)
+    can_generate_thumbnail_on_frame = can_generate_thumbnail_on(frame, request)
+    if not can_generate_thumbnail_on_frame['result']:
+        raise ThumbnailAppException(can_generate_thumbnail_on_frame['reason'], status_code=400)
 
     url = generate_thumbnail(frame, request)
     if request.args.get('image'):
@@ -282,14 +284,11 @@ def bn_thumbnail(frame_basename):
     headers = {
         'Authorization': request.headers.get('Authorization')
     }
-    frames = get_response(
-        f'{settings.ARCHIVE_API}frames/',
-        params={'basename': frame_basename},
-        headers=headers
-    ).json()
+    params = {'basename': frame_basename}
+    frames = get_response(f'{settings.ARCHIVE_API}frames/', params=params, headers=headers).json()
 
     if not frames['count'] == 1:
-        raise ThumbnailAppException('Frame not found', status_code=404)
+        raise ThumbnailAppException('Not found', status_code=404)
 
     return handle_response(frames['results'][0], request)
 
