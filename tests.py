@@ -251,7 +251,7 @@ def test_cannot_generate_thumbnail_for_non_fits_file(thumbservice_client, reques
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
     response = thumbservice_client.get(f'/{frame["id"]}/')
     assert response.status_code == 400
-    assert 'Cannot generate thumbnail for non FITS-type image' in response.get_json()['message']
+    assert 'Cannot generate thumbnail for non FITS-type frame' in response.get_json()['message']
     assert len(list(tmp_path.glob('*'))) == 0
 
 
