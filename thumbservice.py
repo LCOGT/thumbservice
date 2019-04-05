@@ -3,8 +3,10 @@ import os
 import uuid
 
 import boto3
+import logging
 import requests
 from flask_cors import CORS
+from flask.logging import default_handler
 from flask import Flask, request, jsonify, redirect
 from fits2image.conversions import fits_to_jpg
 from fits_align.ident import make_transforms
@@ -12,6 +14,15 @@ from fits_align.align import affineremap
 
 app = Flask(__name__)
 CORS(app)
+
+
+class RequestFormatter(logging.Formatter):
+    def format(self, record):
+        record.url = request.url
+        return super().format(record)
+
+formatter = RequestFormatter('[%(asctime)s] %(levelname)s in %(module)s for %(url)s: %(message)s')
+default_handler.setFormatter(formatter)
 
 
 class Settings:
@@ -36,7 +47,6 @@ class Settings:
     @staticmethod
     def end_with_slash(path):
         return os.path.join(path, '')
-
 
 settings = Settings()
 
