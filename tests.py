@@ -208,12 +208,19 @@ def test_filters_for_color_thumbnail_not_available(thumbservice_client, requests
     request_frames['results'].pop()
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
     requests_mock.get(f'{TEST_API_URL}frames/?REQNUM={frame["REQNUM"]}', json=request_frames)
-    for request_frame in request_frames['results']:
-        requests_mock.get(request_frame['url'], content=b'I Am Image')
     response = thumbservice_client.get(f'/{frame["id"]}/?color=true')
     assert response.status_code == 404
     assert b'RVB frames not found' in response.data
-    # All temp files should have been cleared out
+    assert len(list(tmp_path.glob('*'))) == 0
+
+
+def test_reduced_frames_for_color_thumbnail_not_available(thumbservice_client, requests_mock, s3_client, tmp_path):
+    frame = _test_data['frame'].copy()
+    requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
+    requests_mock.get(f'{TEST_API_URL}frames/?REQNUM={frame["REQNUM"]}', json={'results': []})
+    response = thumbservice_client.get(f'/{frame["id"]}/?color=true')
+    assert response.status_code == 404
+    assert b'RVB frames not found' in response.data
     assert len(list(tmp_path.glob('*'))) == 0
 
 
@@ -223,6 +230,17 @@ def test_cannot_generate_thumbnail_for_non_image_obstypes(thumbservice_client, r
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
     response = thumbservice_client.get(f'/{frame["id"]}/')
     assert response.status_code == 400
+    assert 'Cannot generate thumbnail for OBSTYPE=CATALOG' in response.get_json()['message']
+    assert len(list(tmp_path.glob('*'))) == 0
+
+
+def test_cannot_generate_color_thumbnail_for_all_valid_obstypes(thumbservice_client, requests_mock, tmp_path, s3_client):
+    frame = _test_data['frame'].copy()
+    frame['OBSTYPE'] = 'SPECTRUM'
+    requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
+    response = thumbservice_client.get(f'/{frame["id"]}/?color=true')
+    assert response.status_code == 400
+    assert 'Cannot generate color thumbnail for OBSTYPE=SPECTRUM' in response.get_json()['message']
     assert len(list(tmp_path.glob('*'))) == 0
 
 
@@ -233,6 +251,27 @@ def test_cannot_generate_thumbnail_for_non_fits_file(thumbservice_client, reques
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
     response = thumbservice_client.get(f'/{frame["id"]}/')
     assert response.status_code == 400
+    assert 'Cannot generate thumbnail for non FITS-type image' in response.get_json()['message']
+    assert len(list(tmp_path.glob('*'))) == 0
+
+
+def test_cannot_generate_color_thumbnail_not_associated_with_a_request(thumbservice_client, requests_mock, tmp_path, s3_client):
+    frame = _test_data['frame'].copy()
+    frame['REQNUM'] = None
+    requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
+    response = thumbservice_client.get(f'/{frame["id"]}/?color=true')
+    assert response.status_code == 400
+    assert 'Cannot generate color thumbnail for a frame that does not have a request' in response.get_json()['message']
+    assert len(list(tmp_path.glob('*'))) == 0
+
+
+def test_cannot_generate_color_thumbnail_with_incomplete_frame_info(thumbservice_client, requests_mock, tmp_path, s3_client):
+    frame = _test_data['frame'].copy()
+    del frame['REQNUM']
+    requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
+    response = thumbservice_client.get(f'/{frame["id"]}/')
+    assert response.status_code == 400
+    assert 'Cannot generate thumbnail for given frame' in response.get_json()['message']
     assert len(list(tmp_path.glob('*'))) == 0
 
 
