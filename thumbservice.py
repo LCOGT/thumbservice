@@ -1,20 +1,19 @@
 #!/usr/bin/env python
 import os
 import uuid
+import logging
 
 import boto3
-import logging
 import requests
 from flask_cors import CORS
 from flask.logging import default_handler
-from flask import Flask, request, jsonify, redirect
+from flask import Flask, request, jsonify, redirect, send_from_directory
 from fits2image.conversions import fits_to_jpg
 from fits_align.ident import make_transforms
 from fits_align.align import affineremap
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 CORS(app)
-
 
 class RequestFormatter(logging.Formatter):
     def format(self, record):
@@ -74,18 +73,10 @@ def handle_thumbnail_app_exception(error):
     return response
 
 
-@app.errorhandler(Exception)
-def handle_broad_exceptions(error):
-    app.logger.error(error, exc_info=True)
-    response = jsonify({'message': 'Internal server error'})
-    response.status_code = 500
-    return response
-
-
 def get_response(url, params=None, headers=None):
     response = None
     try:
-        response = requests.get(url, headers=headers, params=params)
+        response = requests.get(url, headers=headers, params=params, timeout=30)
         response.raise_for_status()
     except requests.RequestException:
         status_code = getattr(response, 'status_code', None)
@@ -219,25 +210,27 @@ def rvb_frames(frames):
 
 
 def reproject_files(ref_image, images_to_align):
+    """Return three aligned images."""
     aligned_images = []
-
+    reprojected_file_list = [ref_image]
     try:
         identifications = make_transforms(ref_image, images_to_align[1:3])
         for id in identifications:
             if id.ok:
-                aligned_img = affineremap(id.ukn.filepath, id.trans, outdir=settings.TMP_DIR)
-                aligned_images.append(aligned_img)
+                aligned_image = affineremap(id.ukn.filepath, id.trans, outdir=settings.TMP_DIR)
+                aligned_images.append(aligned_image)
     except Exception:
-        app.logger.error('Error aligning images, falling back to original image list', exc_info=True)
-        # Clean up any images that were created
-        for image in aligned_images:
-            if os.path.exists(image):
-                os.remove(image)
+        app.logger.warning('Error aligning images, falling back to original image list', exc_info=True)
 
-    img_list = [ref_image]+aligned_images
-    if len(img_list) != 3:
-        return images_to_align
-    return img_list
+    # Clean up aligned images if they will not be used
+    if len(aligned_images) != 2:
+        while len(aligned_images) > 0:
+            aligned_image = aligned_images.pop()
+            if os.path.exists(aligned_image):
+                os.remove(aligned_image)
+
+    reprojected_file_list = reprojected_file_list + aligned_images
+    return reprojected_file_list if len(reprojected_file_list) == 3 else images_to_align
 
 
 class Paths:
@@ -328,11 +321,23 @@ def thumbnail(frame_id):
     return handle_response(frame, request)
 
 
-@app.route('/')
-def index():
+@app.route('/favicon.ico')
+def favicon():
+    return redirect('https://cdn.lco.global/mainstyle/img/favicon.ico')
+
+
+@app.route('/robots.txt')
+def robots():
+    return send_from_directory(app.static_folder, 'robots.txt')
+
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def index(path):
     return ((
         'Please see the documentation for the thumbnail service at '
         '<a href="https://developers.lco.global">developers.lco.global</a>'
     ))
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
