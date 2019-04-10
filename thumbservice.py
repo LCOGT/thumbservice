@@ -12,6 +12,9 @@ from fits2image.conversions import fits_to_jpg
 from fits_align.ident import make_transforms
 from fits_align.align import affineremap
 
+from common import settings, get_temp_filename_prefix
+
+
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
@@ -22,32 +25,6 @@ class RequestFormatter(logging.Formatter):
 
 formatter = RequestFormatter('[%(asctime)s] %(levelname)s in %(module)s for %(url)s: %(message)s')
 default_handler.setFormatter(formatter)
-
-
-class Settings:
-    def __init__(self, settings=None):
-        self._settings = settings or {}
-
-        self.ARCHIVE_API = self.set_value('ARCHIVE_API', 'https://archive-api.lco.global/', True)
-        self.TMP_DIR = self.set_value('TMP_DIR', '/tmp/', True)
-        self.BUCKET = self.set_value('AWS_S3_BUCKET', 'lcogtthumbnails')
-        self.AWS_ACCESS_KEY_ID = self.set_value('AWS_ACCESS_KEY_ID', 'changeme')
-        self.AWS_SECRET_ACCESS_KEY = self.set_value('AWS_SECRET_ACCESS_KEY', 'changeme')
-        # Using `None` for `STORAGE_URL` will connect to AWS
-        self.STORAGE_URL = self.set_value('STORAGE_URL', None)
-
-    def set_value(self, env_var, default, must_end_with_slash=False):
-        if env_var in self._settings:
-            value = self._settings[env_var]
-        else:
-            value = os.getenv(env_var, default)
-        return self.end_with_slash(value) if must_end_with_slash else value
-
-    @staticmethod
-    def end_with_slash(path):
-        return os.path.join(path, '')
-
-settings = Settings()
 
 
 class ThumbnailAppException(Exception):
@@ -76,7 +53,7 @@ def handle_thumbnail_app_exception(error):
 def get_response(url, params=None, headers=None):
     response = None
     try:
-        response = requests.get(url, headers=headers, params=params, timeout=30)
+        response = requests.get(url, headers=headers, params=params, timeout=10)
         response.raise_for_status()
     except requests.RequestException:
         status_code = getattr(response, 'status_code', None)
@@ -93,10 +70,6 @@ def get_response(url, params=None, headers=None):
                 pass
         raise ThumbnailAppException(message, status_code=status_code, payload=payload)
     return response
-
-
-def get_unique_id():
-    return uuid.uuid4().hex
 
 
 def can_generate_thumbnail_on(frame, request):
@@ -129,8 +102,12 @@ def can_generate_thumbnail_on(frame, request):
     return {'result': True, 'reason': ''}
 
 
+def unique_temp_path_start():
+    return f'{settings.TMP_DIR}{get_temp_filename_prefix()}{uuid.uuid4().hex}-'
+
+
 def save_temp_file(frame):
-    path = f'{settings.TMP_DIR}{get_unique_id()}-{frame["filename"]}'
+    path = f'{unique_temp_path_start()}{frame["filename"]}'
     with open(path, 'wb') as f:
         f.write(get_response(frame['url']).content)
     return path
@@ -141,7 +118,7 @@ def key_for_jpeg(frame_id, **params):
 
 
 def convert_to_jpg(paths, key, **params):
-    jpg_path = f'{os.path.dirname(paths[0])}/{get_unique_id()}-{key}'
+    jpg_path = f'{unique_temp_path_start()}{key}'
     fits_to_jpg(paths, jpg_path, **params)
     return jpg_path
 

@@ -8,6 +8,7 @@ import pytest
 import requests
 from moto import mock_s3
 
+import common
 import thumbservice
 
 TEST_API_URL = 'https://test-archive-api.lco.gtn/'
@@ -95,7 +96,7 @@ _test_data = {
 
 @pytest.fixture(autouse=True)
 def set_test_values(tmp_path):
-    thumbservice.settings = thumbservice.Settings(
+    thumbservice.settings = common.Settings(
         settings={
             'TMP_DIR': tmp_path,
             'ARCHIVE_API': TEST_API_URL,
