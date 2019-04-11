@@ -48,6 +48,13 @@ is supplied which will return an image directly.
 
 ## Changelog
 
+### 2.12
+2019-04-11
+* Add `/robots.txt` and `/favicon.ico` endpoints
+* Use gunicorn configuration file with `child_exit`
+[server hook](http://docs.gunicorn.org/en/stable/settings.html#child-exit) implemented for additional
+temp file cleanup actions on certain abrupt worker death [#846](https://lcoglobal.redmineup.com/issues/846)
+
 ### 2.11
 2019-04-05
 * Update boto3, requests, and flask
