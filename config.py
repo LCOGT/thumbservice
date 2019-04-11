@@ -7,6 +7,9 @@ bind = '0.0.0.0:80'
 worker_class = 'gevent'
 workers = 2
 timeout = 60
+max_requests = 1000
+errorlog = '-'
+accesslog = '-'
 
 
 def clean_up_files(worker_id):
