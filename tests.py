@@ -8,6 +8,7 @@ import pytest
 import requests
 from moto import mock_s3
 
+import common
 import thumbservice
 
 TEST_API_URL = 'https://test-archive-api.lco.gtn/'
@@ -95,7 +96,7 @@ _test_data = {
 
 @pytest.fixture(autouse=True)
 def set_test_values(tmp_path):
-    thumbservice.settings = thumbservice.Settings(
+    thumbservice.settings = common.Settings(
         settings={
             'TMP_DIR': tmp_path,
             'ARCHIVE_API': TEST_API_URL,
@@ -132,15 +133,23 @@ def mock_affineremap(tmp_path, request):
     m.side_effect = side_effect
 
 
+def make_transforms_returns(paths, is_ok):
+    ukn = namedtuple('Ukn', ['filepath'])
+    result = namedtuple('Result', ['ok', 'trans', 'ukn'])
+    results = []
+    for path in paths:
+        results.append(result(is_ok, None, ukn(path)))
+    return results
+
+
 @pytest.fixture(autouse=True)
-def mock_make_transforms():
+def mock_make_transforms(request):
+    if 'no_auto_mock_make_transforms' in request.keywords:
+        return
+
     def side_effect(*args, **kwargs):
-        ukn = namedtuple('Ukn', ['filepath'])
-        result = namedtuple('Result', ['ok', 'trans', 'ukn'])
-        results = []
-        for path in args[1]:
-            results.append(result(True, None, ukn(path)))
-        return results
+        return make_transforms_returns(args[1], is_ok=True)
+
     m = thumbservice.make_transforms = mock.MagicMock()
     m.side_effect = side_effect
 
@@ -162,6 +171,11 @@ def s3_client():
 
 def test_get_index(thumbservice_client):
     response = thumbservice_client.get('/')
+    assert b'Please see the documentation' in response.data
+
+
+def test_get_index_with_random_path(thumbservice_client):
+    response = thumbservice_client.get('/some/random/endpoint')
     assert b'Please see the documentation' in response.data
 
 
@@ -214,6 +228,24 @@ def test_generate_color_thumbnail_successfully(thumbservice_client, requests_moc
 def test_image_align_fails_falls_back_to_original_image_list(thumbservice_client, requests_mock, tmp_path, s3_client):
     m = thumbservice.affineremap = mock.MagicMock()
     m.side_effect = [make_tmp_file(tmp_path, 'tmp', '.fits'), Exception('Something bad happened')]
+    frame = deepcopy(_test_data['frame'])
+    request_frames = deepcopy(_test_data['request_frames'])
+    requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
+    requests_mock.get(f'{TEST_API_URL}frames/?REQNUM={frame["REQNUM"]}&RLEVEL=91', json=request_frames)
+    for request_frame in request_frames['results']:
+        requests_mock.get(request_frame['url'], content=b'I Am Image')
+    response = thumbservice_client.get(f'/{frame["id"]}/?color=true')
+    response_as_json = response.get_json()
+    assert 'url' in response_as_json
+    assert response_as_json['propid'] == frame['PROPID']
+    assert response.status_code == 200
+    assert len(list(tmp_path.glob('*'))) == 0
+
+
+@pytest.mark.mock_make_transforms
+def test_one_image_doesnt_align_falls_back_to_original_image_list(thumbservice_client, requests_mock, tmp_path, s3_client):
+    m = thumbservice.make_transforms = mock.MagicMock()
+    m.side_effect = [make_transforms_returns(['a.fits'], True), make_transforms_returns(['b.fits'], False)]
     frame = deepcopy(_test_data['frame'])
     request_frames = deepcopy(_test_data['request_frames'])
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
@@ -296,7 +328,7 @@ def test_cannot_generate_color_thumbnail_with_incomplete_frame_info(thumbservice
     frame = deepcopy(_test_data['frame'])
     del frame['REQNUM']
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
-    response = thumbservice_client.get(f'/{frame["id"]}/')
+    response = thumbservice_client.get(f'/{frame["id"]}', follow_redirects=True)
     assert response.status_code == 400
     assert 'Cannot generate thumbnail for given frame' in response.get_json()['message']
     assert len(list(tmp_path.glob('*'))) == 0

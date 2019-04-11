@@ -1,20 +1,22 @@
 #!/usr/bin/env python
 import os
 import uuid
+import logging
 
 import boto3
-import logging
 import requests
 from flask_cors import CORS
 from flask.logging import default_handler
-from flask import Flask, request, jsonify, redirect
+from flask import Flask, request, jsonify, redirect, send_from_directory
 from fits2image.conversions import fits_to_jpg
 from fits_align.ident import make_transforms
 from fits_align.align import affineremap
 
-app = Flask(__name__)
-CORS(app)
+from common import settings, get_temp_filename_prefix
 
+
+app = Flask(__name__, static_folder='static')
+CORS(app)
 
 class RequestFormatter(logging.Formatter):
     def format(self, record):
@@ -23,32 +25,6 @@ class RequestFormatter(logging.Formatter):
 
 formatter = RequestFormatter('[%(asctime)s] %(levelname)s in %(module)s for %(url)s: %(message)s')
 default_handler.setFormatter(formatter)
-
-
-class Settings:
-    def __init__(self, settings=None):
-        self._settings = settings or {}
-
-        self.ARCHIVE_API = self.set_value('ARCHIVE_API', 'https://archive-api.lco.global/', True)
-        self.TMP_DIR = self.set_value('TMP_DIR', '/tmp/', True)
-        self.BUCKET = self.set_value('AWS_S3_BUCKET', 'lcogtthumbnails')
-        self.AWS_ACCESS_KEY_ID = self.set_value('AWS_ACCESS_KEY_ID', 'changeme')
-        self.AWS_SECRET_ACCESS_KEY = self.set_value('AWS_SECRET_ACCESS_KEY', 'changeme')
-        # Using `None` for `STORAGE_URL` will connect to AWS
-        self.STORAGE_URL = self.set_value('STORAGE_URL', None)
-
-    def set_value(self, env_var, default, must_end_with_slash=False):
-        if env_var in self._settings:
-            value = self._settings[env_var]
-        else:
-            value = os.getenv(env_var, default)
-        return self.end_with_slash(value) if must_end_with_slash else value
-
-    @staticmethod
-    def end_with_slash(path):
-        return os.path.join(path, '')
-
-settings = Settings()
 
 
 class ThumbnailAppException(Exception):
@@ -74,18 +50,10 @@ def handle_thumbnail_app_exception(error):
     return response
 
 
-@app.errorhandler(Exception)
-def handle_broad_exceptions(error):
-    app.logger.error(error, exc_info=True)
-    response = jsonify({'message': 'Internal server error'})
-    response.status_code = 500
-    return response
-
-
 def get_response(url, params=None, headers=None):
     response = None
     try:
-        response = requests.get(url, headers=headers, params=params)
+        response = requests.get(url, headers=headers, params=params, timeout=10)
         response.raise_for_status()
     except requests.RequestException:
         status_code = getattr(response, 'status_code', None)
@@ -102,10 +70,6 @@ def get_response(url, params=None, headers=None):
                 pass
         raise ThumbnailAppException(message, status_code=status_code, payload=payload)
     return response
-
-
-def get_unique_id():
-    return uuid.uuid4().hex
 
 
 def can_generate_thumbnail_on(frame, request):
@@ -138,8 +102,12 @@ def can_generate_thumbnail_on(frame, request):
     return {'result': True, 'reason': ''}
 
 
+def unique_temp_path_start():
+    return f'{settings.TMP_DIR}{get_temp_filename_prefix()}{uuid.uuid4().hex}-'
+
+
 def save_temp_file(frame):
-    path = f'{settings.TMP_DIR}{get_unique_id()}-{frame["filename"]}'
+    path = f'{unique_temp_path_start()}{frame["filename"]}'
     with open(path, 'wb') as f:
         f.write(get_response(frame['url']).content)
     return path
@@ -150,7 +118,7 @@ def key_for_jpeg(frame_id, **params):
 
 
 def convert_to_jpg(paths, key, **params):
-    jpg_path = f'{os.path.dirname(paths[0])}/{get_unique_id()}-{key}'
+    jpg_path = f'{unique_temp_path_start()}{key}'
     fits_to_jpg(paths, jpg_path, **params)
     return jpg_path
 
@@ -219,25 +187,27 @@ def rvb_frames(frames):
 
 
 def reproject_files(ref_image, images_to_align):
+    """Return three aligned images."""
     aligned_images = []
-
+    reprojected_file_list = [ref_image]
     try:
         identifications = make_transforms(ref_image, images_to_align[1:3])
         for id in identifications:
             if id.ok:
-                aligned_img = affineremap(id.ukn.filepath, id.trans, outdir=settings.TMP_DIR)
-                aligned_images.append(aligned_img)
+                aligned_image = affineremap(id.ukn.filepath, id.trans, outdir=settings.TMP_DIR)
+                aligned_images.append(aligned_image)
     except Exception:
-        app.logger.error('Error aligning images, falling back to original image list', exc_info=True)
-        # Clean up any images that were created
-        for image in aligned_images:
-            if os.path.exists(image):
-                os.remove(image)
+        app.logger.warning('Error aligning images, falling back to original image list', exc_info=True)
 
-    img_list = [ref_image]+aligned_images
-    if len(img_list) != 3:
-        return images_to_align
-    return img_list
+    # Clean up aligned images if they will not be used
+    if len(aligned_images) != 2:
+        while len(aligned_images) > 0:
+            aligned_image = aligned_images.pop()
+            if os.path.exists(aligned_image):
+                os.remove(aligned_image)
+
+    reprojected_file_list = reprojected_file_list + aligned_images
+    return reprojected_file_list if len(reprojected_file_list) == 3 else images_to_align
 
 
 class Paths:
@@ -328,11 +298,23 @@ def thumbnail(frame_id):
     return handle_response(frame, request)
 
 
-@app.route('/')
-def index():
+@app.route('/favicon.ico')
+def favicon():
+    return redirect('https://cdn.lco.global/mainstyle/img/favicon.ico')
+
+
+@app.route('/robots.txt')
+def robots():
+    return send_from_directory(app.static_folder, 'robots.txt')
+
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def index(path):
     return ((
         'Please see the documentation for the thumbnail service at '
         '<a href="https://developers.lco.global">developers.lco.global</a>'
     ))
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
