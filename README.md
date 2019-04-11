@@ -48,6 +48,10 @@ is supplied which will return an image directly.
 
 ## Changelog
 
+### 2.13
+2019-04-11
+* Enable gunicorn error and access logs
+
 ### 2.12
 2019-04-11
 * Add `/robots.txt` and `/favicon.ico` endpoints
