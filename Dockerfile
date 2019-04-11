@@ -2,7 +2,7 @@ FROM python:3.6-alpine
 MAINTAINER Austin Riba <ariba@lcogt.net>
 
 EXPOSE 80
-CMD gunicorn -k gevent -w 2 thumbservice:app -b 0.0.0.0:80
+CMD gunicorn -c config.py thumbservice:app
 WORKDIR /var/www/thumbservice
 
 COPY requirements.txt /var/www/thumbservice
