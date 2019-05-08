@@ -164,7 +164,8 @@ def thumbservice_client():
 def s3_client():
     # This should be passed in to all test functions to mock out calls to aws
     with mock_s3():
-        s3 = boto3.client('s3', aws_access_key_id=TEST_ACCESS_KEY, aws_secret_access_key=TEST_SECRET_ACCESS_KEY)
+        config = boto3.session.Config(region_name='us-west-2', signature_version='s3v4')
+        s3 = boto3.client('s3', aws_access_key_id=TEST_ACCESS_KEY, aws_secret_access_key=TEST_SECRET_ACCESS_KEY, config=config)
         s3.create_bucket(Bucket=TEST_BUCKET)
         yield s3
 
