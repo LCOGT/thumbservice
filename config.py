@@ -3,7 +3,7 @@ import glob
 
 from common import settings, get_temp_filename_prefix
 
-bind = '0.0.0.0:80'
+bind = '0.0.0.0:8080'
 worker_class = 'gevent'
 workers = 2
 timeout = 60
