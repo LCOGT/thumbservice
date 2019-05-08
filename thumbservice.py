@@ -124,11 +124,13 @@ def convert_to_jpg(paths, key, **params):
 
 
 def get_s3_client():
+    config = boto3.session.Config(region_name='us-west-2', signature_version='s3v4')
     return boto3.client(
         's3',
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        endpoint_url=settings.STORAGE_URL
+        endpoint_url=settings.STORAGE_URL,
+        config=config,
     )
 
 
