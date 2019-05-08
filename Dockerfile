@@ -1,15 +1,22 @@
 FROM python:3.6-alpine
-MAINTAINER Austin Riba <ariba@lcogt.net>
 
-EXPOSE 80
-CMD gunicorn -c config.py thumbservice:app
-WORKDIR /var/www/thumbservice
+WORKDIR /app
+CMD [ "gunicorn", "--config=config.py", "thumbservice:app" ]
 
-COPY requirements.txt /var/www/thumbservice
+COPY requirements.txt .
 RUN apk --no-cache add freetype libjpeg-turbo libpng ttf-dejavu zlib \
-        && apk --no-cache add --virtual .build-deps freetype-dev gcc libjpeg-turbo-dev libpng-dev make musl-dev zlib-dev openssl-dev libffi-dev \
+        && apk --no-cache add --virtual .build-deps \
+                freetype-dev \
+                gcc \
+                libffi-dev \
+                libjpeg-turbo-dev \
+                libpng-dev \
+                make \
+                musl-dev \
+                openssl-dev \
+                zlib-dev \
         && pip --no-cache-dir install "numpy>=1.16,<1.17" \
-        && pip --no-cache-dir install -r /var/www/thumbservice/requirements.txt --trusted-host=buildsba.lco.gtn \
+        && pip --no-cache-dir install --trusted-host=buildsba.lco.gtn -r requirements.txt \
         && apk --no-cache del .build-deps
 
-COPY . /var/www/thumbservice/
+COPY . .
