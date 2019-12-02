@@ -60,6 +60,8 @@ def get_response(url, params=None, headers=None):
         payload = {}
         message = 'Got error response'
         if status_code is None or 500 <= status_code < 600:
+            content = getattr(response, 'content', None)
+            logging.exception(f'Error getting {url} params: {params} status_code: {status_code} content: {content}')
             status_code = 502
         elif status_code == 404:
             message = 'Not found'
