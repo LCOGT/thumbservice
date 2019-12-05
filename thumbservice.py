@@ -2,6 +2,7 @@
 import os
 import uuid
 import logging
+from datetime import datetime
 
 import boto3
 import requests
@@ -52,16 +53,22 @@ def handle_thumbnail_app_exception(error):
 
 def get_response(url, params=None, headers=None):
     response = None
+    start = datetime.utcnow()
     try:
         response = requests.get(url, headers=headers, params=params, timeout=10)
         response.raise_for_status()
     except requests.RequestException:
         status_code = getattr(response, 'status_code', None)
         payload = {}
+        end = datetime.utcnow()
+        duration = (end - start).total_seconds()
         message = 'Got error response'
         if status_code is None or 500 <= status_code < 600:
             content = getattr(response, 'content', None)
-            logging.exception(f'Error getting {url} params: {params} status_code: {status_code} content: {content}')
+            logging.exception(
+                f'Error getting {url} params: {params} status_code: {status_code} content: {content} took: {duration} '
+                f'seconds, started {start} and ended {end} '
+            )
             status_code = 502
         elif status_code == 404:
             message = 'Not found'
