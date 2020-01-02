@@ -261,6 +261,7 @@ class Paths:
 
 
 def generate_thumbnail(frame, request):
+    logging.info('Starting generate thumbnail')
     params = {
         'width': int(request.args.get('width', 200)),
         'height': int(request.args.get('height', 200)),
