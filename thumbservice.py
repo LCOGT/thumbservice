@@ -37,7 +37,7 @@ def timer(func):
         value = func(*args, **kwargs)
         end_time = time.perf_counter()
         run_time = end_time - start_time
-        logging.info(f"Finished {func.__name__!r} in {run_time:.4f} secs")
+        app.logger.info(f"Finished {func.__name__!r} in {run_time:.4f} secs")
         return value
     return wrapper_timer
 
@@ -69,7 +69,7 @@ def handle_thumbnail_app_exception(error):
 def get_response(url, params=None, headers=None):
     response = None
     start = datetime.utcnow()
-    logging.info(f'Getting url {url}')
+    app.logger.info(f'Getting url {url}')
     try:
         response = requests.get(url, headers=headers, params=params, timeout=10)
         response.raise_for_status()
@@ -81,7 +81,7 @@ def get_response(url, params=None, headers=None):
         message = 'Got error response'
         if status_code is None or 500 <= status_code < 600:
             content = getattr(response, 'content', None)
-            logging.exception(
+            app.logger.exception(
                 f'Error getting {url} params: {params} status_code: {status_code} content: {content} took: {duration} '
                 f'seconds, started {start} and ended {end} '
             )
@@ -261,7 +261,7 @@ class Paths:
 
 
 def generate_thumbnail(frame, request):
-    logging.info('Starting generate thumbnail')
+    app.logger.info('Starting generate thumbnail')
     params = {
         'width': int(request.args.get('width', 200)),
         'height': int(request.args.get('height', 200)),
@@ -273,7 +273,7 @@ def generate_thumbnail(frame, request):
     }
     key = key_for_jpeg(frame['id'], **params)
     if key_exists(key):
-        logging.info(f'Key {key} exists already, no need to generate')
+        app.logger.info(f'Key {key} exists already, no need to generate')
         return generate_url(key)
     start_generate = datetime.utcnow()
     # Cfitsio is a bit crappy and can only read data off disk
@@ -296,7 +296,7 @@ def generate_thumbnail(frame, request):
         for path in paths.all_paths:
             if os.path.exists(path):
                 os.remove(path)
-    logging.info(f'Took {(datetime.utcnow() - start_generate).total_seconds()} seconds to generate thumbnail')
+    app.logger.info(f'Took {(datetime.utcnow() - start_generate).total_seconds()} seconds to generate thumbnail')
     return generate_url(key)
 
 
