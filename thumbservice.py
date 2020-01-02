@@ -3,6 +3,8 @@ import os
 import uuid
 import logging
 from datetime import datetime
+import functools
+import time
 
 import boto3
 import requests
@@ -28,6 +30,18 @@ formatter = RequestFormatter('[%(asctime)s] %(levelname)s in %(module)s for %(ur
 default_handler.setFormatter(formatter)
 
 
+def timer(func):
+    @functools.wraps(func)
+    def wrapper_timer(*args, **kwargs):
+        start_time = time.perf_counter()
+        value = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        run_time = end_time - start_time
+        logging.info(f"Finished {func.__name__!r} in {run_time:.4f} secs")
+        return value
+    return wrapper_timer
+
+
 class ThumbnailAppException(Exception):
     status_code = 500
 
@@ -51,9 +65,11 @@ def handle_thumbnail_app_exception(error):
     return response
 
 
+@timer
 def get_response(url, params=None, headers=None):
     response = None
     start = datetime.utcnow()
+    logging.info(f'Getting url {url}')
     try:
         response = requests.get(url, headers=headers, params=params, timeout=10)
         response.raise_for_status()
@@ -115,6 +131,7 @@ def unique_temp_path_start():
     return f'{settings.TMP_DIR}{get_temp_filename_prefix()}{uuid.uuid4().hex}-'
 
 
+@timer
 def save_temp_file(frame):
     path = f'{unique_temp_path_start()}{frame["filename"]}'
     with open(path, 'wb') as f:
@@ -126,6 +143,7 @@ def key_for_jpeg(frame_id, **params):
     return f'{frame_id}.{hash(frozenset(params.items()))}.jpg'
 
 
+@timer
 def convert_to_jpg(paths, key, **params):
     jpg_path = f'{unique_temp_path_start()}{key}'
     fits_to_jpg(paths, jpg_path, **params)
@@ -143,6 +161,7 @@ def get_s3_client():
     )
 
 
+@timer
 def upload_to_s3(key, jpg_path):
     client = get_s3_client()
     with open(jpg_path, 'rb') as f:
@@ -154,6 +173,7 @@ def upload_to_s3(key, jpg_path):
         )
 
 
+@timer
 def generate_url(key):
     client = get_s3_client()
     return client.generate_presigned_url(
@@ -163,6 +183,7 @@ def generate_url(key):
     )
 
 
+@timer
 def key_exists(key):
     client = get_s3_client()
     try:
@@ -172,6 +193,7 @@ def key_exists(key):
         return False
 
 
+@timer
 def frames_for_requestnum(reqnum, request, rlevel):
     headers = {
         'Authorization': request.headers.get('Authorization')
@@ -197,6 +219,7 @@ def rvb_frames(frames):
     return selected_frames
 
 
+@timer
 def reproject_files(ref_image, images_to_align):
     """Return three aligned images."""
     aligned_images = []
@@ -249,7 +272,9 @@ def generate_thumbnail(frame, request):
     }
     key = key_for_jpeg(frame['id'], **params)
     if key_exists(key):
+        logging.info(f'Key {key} exists already, no need to generate')
         return generate_url(key)
+    start_generate = datetime.utcnow()
     # Cfitsio is a bit crappy and can only read data off disk
     jpg_path = None
     paths = Paths()
@@ -270,6 +295,7 @@ def generate_thumbnail(frame, request):
         for path in paths.all_paths:
             if os.path.exists(path):
                 os.remove(path)
+    logging.info(f'Took {(datetime.utcnow() - start_generate).total_seconds()} seconds to generate thumbnail')
     return generate_url(key)
 
 
