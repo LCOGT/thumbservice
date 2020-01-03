@@ -232,7 +232,7 @@ def reproject_files(ref_image, images_to_align):
                 aligned_image = affineremap(id.ukn.filepath, id.trans, outdir=settings.TMP_DIR)
                 aligned_images.append(aligned_image)
     except Exception:
-        print('Error aligning images, falling back to original image list', exc_info=True)
+        app.logger.warning('Error aligning images, falling back to original image list', exc_info=True)
 
     # Clean up aligned images if they will not be used
     if len(aligned_images) != 2:
