@@ -21,14 +21,19 @@ from common import settings, get_temp_filename_prefix
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
-class RequestFormatter(logging.Formatter):
-    def format(self, record):
-        record.url = request.url
-        return super().format(record)
-
-formatter = RequestFormatter('[%(asctime)s] %(levelname)s in %(module)s for %(url)s: %(message)s')
-default_handler.setFormatter(formatter)
-default_handler.setLevel('INFO')
+if __name__ != '__main__':
+    # Set up logging for gunicorn
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers = gunicorn_logger.handlers
+    app.logger.setLevel(gunicorn_logger.level)
+else:
+    # Set up logging for dev server
+    class RequestFormatter(logging.Formatter):
+        def format(self, record):
+            record.url = request.url
+            return super().format(record)
+    formatter = RequestFormatter('[%(asctime)s] %(levelname)s in %(module)s for %(url)s: %(message)s')
+    default_handler.setFormatter(formatter)
 
 
 def timer(func):
@@ -38,7 +43,7 @@ def timer(func):
         value = func(*args, **kwargs)
         end_time = time.perf_counter()
         run_time = end_time - start_time
-        print(f"Finished {func.__name__!r} in {run_time:.4f} secs")
+        app.logger.info(f'Finished {func.__name__!r} in {run_time:.4f} seconds')
         return value
     return wrapper_timer
 
@@ -70,7 +75,7 @@ def handle_thumbnail_app_exception(error):
 def get_response(url, params=None, headers=None):
     response = None
     start = datetime.utcnow()
-    print(f'Getting url {url}')
+    app.logger.info(f'Getting url {url}')
     try:
         response = requests.get(url, headers=headers, params=params, timeout=10)
         response.raise_for_status()
@@ -262,7 +267,7 @@ class Paths:
 
 
 def generate_thumbnail(frame, request):
-    print('Starting generate thumbnail')
+    app.logger.info('Starting generate thumbnail')
     params = {
         'width': int(request.args.get('width', 200)),
         'height': int(request.args.get('height', 200)),
@@ -274,7 +279,7 @@ def generate_thumbnail(frame, request):
     }
     key = key_for_jpeg(frame['id'], **params)
     if key_exists(key):
-        print(f'Key {key} exists already, no need to generate')
+        app.logger.info(f'Key {key} exists already, no need to generate')
         return generate_url(key)
     start_generate = datetime.utcnow()
     # Cfitsio is a bit crappy and can only read data off disk
@@ -297,7 +302,7 @@ def generate_thumbnail(frame, request):
         for path in paths.all_paths:
             if os.path.exists(path):
                 os.remove(path)
-    print(f'Took {(datetime.utcnow() - start_generate).total_seconds()} seconds to generate thumbnail')
+    app.logger.info(f'Took {(datetime.utcnow() - start_generate).total_seconds()} seconds to generate thumbnail')
     return generate_url(key)
 
 
