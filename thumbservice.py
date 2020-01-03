@@ -28,6 +28,7 @@ class RequestFormatter(logging.Formatter):
 
 formatter = RequestFormatter('[%(asctime)s] %(levelname)s in %(module)s for %(url)s: %(message)s')
 default_handler.setFormatter(formatter)
+default_handler.setLevel('INFO')
 
 
 def timer(func):
