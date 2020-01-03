@@ -38,7 +38,7 @@ def timer(func):
         value = func(*args, **kwargs)
         end_time = time.perf_counter()
         run_time = end_time - start_time
-        app.logger.info(f"Finished {func.__name__!r} in {run_time:.4f} secs")
+        print(f"Finished {func.__name__!r} in {run_time:.4f} secs")
         return value
     return wrapper_timer
 
@@ -70,7 +70,7 @@ def handle_thumbnail_app_exception(error):
 def get_response(url, params=None, headers=None):
     response = None
     start = datetime.utcnow()
-    app.logger.info(f'Getting url {url}')
+    print(f'Getting url {url}')
     try:
         response = requests.get(url, headers=headers, params=params, timeout=10)
         response.raise_for_status()
@@ -232,7 +232,7 @@ def reproject_files(ref_image, images_to_align):
                 aligned_image = affineremap(id.ukn.filepath, id.trans, outdir=settings.TMP_DIR)
                 aligned_images.append(aligned_image)
     except Exception:
-        app.logger.warning('Error aligning images, falling back to original image list', exc_info=True)
+        print('Error aligning images, falling back to original image list', exc_info=True)
 
     # Clean up aligned images if they will not be used
     if len(aligned_images) != 2:
@@ -262,7 +262,7 @@ class Paths:
 
 
 def generate_thumbnail(frame, request):
-    app.logger.info('Starting generate thumbnail')
+    print('Starting generate thumbnail')
     params = {
         'width': int(request.args.get('width', 200)),
         'height': int(request.args.get('height', 200)),
@@ -274,7 +274,7 @@ def generate_thumbnail(frame, request):
     }
     key = key_for_jpeg(frame['id'], **params)
     if key_exists(key):
-        app.logger.info(f'Key {key} exists already, no need to generate')
+        print(f'Key {key} exists already, no need to generate')
         return generate_url(key)
     start_generate = datetime.utcnow()
     # Cfitsio is a bit crappy and can only read data off disk
@@ -297,7 +297,7 @@ def generate_thumbnail(frame, request):
         for path in paths.all_paths:
             if os.path.exists(path):
                 os.remove(path)
-    app.logger.info(f'Took {(datetime.utcnow() - start_generate).total_seconds()} seconds to generate thumbnail')
+    print(f'Took {(datetime.utcnow() - start_generate).total_seconds()} seconds to generate thumbnail')
     return generate_url(key)
 
 
