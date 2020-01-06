@@ -28,9 +28,9 @@ def on_starting(server):
     # even have been run. The on starting hook runs when the master process starts. Clear out
     # the temp dir if there is anything in there
     # https://docs.gunicorn.org/en/stable/settings.html#on-starting
-    print('Running on_starting hook')
+    server.log.info('Running on_starting hook')
     paths = glob.glob(f'{settings.TMP_DIR}*')
     for path in paths:
         if os.path.exists(path):
-            print(f'Path {path} was left behind during restart, cleaning it up')
-            # os.remove(path)
+            server.log.info(f'Path {path} was left behind during restart, cleaning it up')
+            os.remove(path)
