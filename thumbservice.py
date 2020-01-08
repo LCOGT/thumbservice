@@ -115,7 +115,7 @@ def save_temp_file(frame):
 
 
 def key_for_jpeg(frame_id, **params):
-    return f'{frame_id}.{hashlib.blake2s(repr(frozenset(params.items())).encode()).hexdigest()}.jpg'
+    return f'{frame_id}.{hashlib.blake2b(repr(frozenset(params.items())).encode(), digest_size=20).hexdigest()}.jpg'
 
 
 def convert_to_jpg(paths, key, **params):
