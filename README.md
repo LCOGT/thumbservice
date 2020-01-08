@@ -48,6 +48,15 @@ is supplied which will return an image directly.
 
 ## Changelog
 
+### 2.15
+2020-01-03
+* Clean up gunicorn config file as most configuration has been moved to the helm chart
+
+### 2.14
+2019-05-08
+* Migrate to AWS V4 signatures
+* Modernize docker image
+
 ### 2.13
 2019-04-11
 * Enable gunicorn error and access logs

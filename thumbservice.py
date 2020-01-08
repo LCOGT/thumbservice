@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 import functools
 import time
+import hashlib
 
 import boto3
 import requests
@@ -146,7 +147,7 @@ def save_temp_file(frame):
 
 
 def key_for_jpeg(frame_id, **params):
-    return f'{frame_id}.{hash(frozenset(params.items()))}.jpg'
+    return f'{frame_id}.{hashlib.blake2b(repr(frozenset(params.items())).encode(), digest_size=20).hexdigest()}.jpg'
 
 
 @timer
