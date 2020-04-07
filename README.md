@@ -48,6 +48,11 @@ is supplied which will return an image directly.
 
 ## Changelog
 
+### 2.16
+2020-02-15
+* Fix hash used in s3 key to be stable given the same inputs
+* Add hook to gunicorn configuration files to clear out the temp directory on startup
+
 ### 2.15
 2020-01-03
 * Clean up gunicorn config file as most configuration has been moved to the helm chart
