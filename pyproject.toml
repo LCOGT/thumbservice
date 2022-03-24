@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "thumbservice"
+version = "2.16"
+description = "This is a flask application that generates thumbnails from data stored on the LCOGT Science Archive."
+authors = ["OCS <ocs@lco.global>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+numpy = "~1.18"
+Flask = "~1.0"
+Flask-Cors = "^3"
+requests = "~2.21"
+boto3 = "~1.9"
+Pillow = "7.0.0"
+fits2image = "~0.4"
+fits-align = "~0.4"
+gunicorn = {version = "19.9.0", extras = ["gevent"]}
+pytest = "^5"
+requests-mock = "1.7.0"
+moto = "1.3.7"
+astropy = "^5"
