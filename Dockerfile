@@ -1,7 +1,7 @@
 FROM python:3.9-alpine
 
 WORKDIR /app
-CMD [ "gunicorn", "--config=config.py", "thumbservice:app" ]
+CMD [ "gunicorn", "--config=thumbservice/config.py", "thumbservice.thumbservice:app" ]
 
 COPY ./pyproject.toml ./poetry.lock ./
 

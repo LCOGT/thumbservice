@@ -13,7 +13,7 @@ from fits2image.conversions import fits_to_jpg
 from fits_align.ident import make_transforms
 from fits_align.align import affineremap
 
-from common import settings, get_temp_filename_prefix
+from thumbservice.common import settings, get_temp_filename_prefix
 
 
 app = Flask(__name__, static_folder='static')

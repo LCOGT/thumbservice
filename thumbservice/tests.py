@@ -8,8 +8,8 @@ import pytest
 import requests
 from moto import mock_s3
 
-import common
-import thumbservice
+from thumbservice import common
+from thumbservice import thumbservice
 
 TEST_API_URL = 'https://test-archive-api.lco.gtn/'
 TEST_BUCKET = 'test_bucket'
