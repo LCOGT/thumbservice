@@ -6,11 +6,11 @@ authors = ["OCS <ocs@lco.global>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-numpy = "~1.18"
+numpy = "^1.18"
 Flask = "~1.0"
 Flask-Cors = "^3"
-requests = "~2.21"
-boto3 = "~1.9"
+requests = "^2.21"
+boto3 = "^1.21"
 Pillow = "7.0.0"
 fits2image = "~0.4"
 fits-align = "~0.4"
