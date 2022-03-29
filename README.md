@@ -24,6 +24,21 @@ poetry install
 
 Run the tests with `poetry run pytest thumbservice/tests.py`.
 
+## Configuration
+
+This project can be configured using the following environment variables:
+
+|Environment Variable| Description | Default |
+|--------------------|-------------|---------|
+| `ARCHIVE_API` | Archive API URL | http://localhost/
+| `TMP_DIR` | Temporary directory for image operations | '/tmp/'
+| `AWS_S3_BUCKET` | AWS S3 Bucket to store thumbnails | 'changeme'
+| `AWS_ACCESS_KEY_ID` | AWS Access Key ID for S3 Bucket | 'changeme'
+| `AWS_SECRET_ACCESS_KEY` | AWS Secret Access Key for S3 Bucket | 'changeme'
+| `REQUIRED_FRAME_VALIDATION_KEYS` | Keys from Archive API record required in order to create a thumbnail from the FITS image | 'configuration_type,request_id,filename'
+| `VALID_CONFIGURATION_TYPES` | Only generate thumbnails from images of these configuration types | 'ARC,BIAS,BPM,DARK,DOUBLE,EXPERIMENTAL,EXPOSE,GUIDE,LAMPFLAT,SKYFLAT,SPECTRUM,STANDARD,TARGET,TRAILED'
+| `VALID_CONFIGURATION_TYPES_FOR_COLOR_THUMBS` | Only generate color thumbnails from images of these configuration types | 'EXPOSE,STANDARD'
+
 ## Authorization
 
 The API passes through the `Authorization` header to the archive API. You only need to provide
