@@ -12,13 +12,21 @@ set.
 This script also relies on [fits2image](https://github.com/LCOGT/fits2image). Make sure it is installed
 in your virtualenv.
 
-All other dependencies are listed in the requirements.txt file and can be installed with pip.
+All other dependencies are listed in the pyproject.toml file and can be installed via [poetry](https://python-poetry.org/).
 
-Run the tests with `pytest thumbservice/tests.py`.
+```bash
+pip install --upgrade pip
+pip install poetry
+poetry install
+```
+
+`poetry install` will create a virtual environment for you, which will have all requirements installed.
+
+Run the tests with `poetry run pytest thumbservice/tests.py`.
 
 ## Authorization
 
-The api passes through the `Authorization` header to the archive API. You only need to provide
+The API passes through the `Authorization` header to the archive API. You only need to provide
 this header if the data you are attempting to get a thumbnail for is proprietary. See the archive
 documentation for more details.
 
