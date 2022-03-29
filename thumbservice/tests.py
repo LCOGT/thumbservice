@@ -18,76 +18,76 @@ TEST_SECRET_ACCESS_KEY = 'test_secret_access_key'
 
 _test_data = {
     'frame': {
-        'OBSTYPE': 'EXPOSE',
+        'configuration_type': 'EXPOSE',
         'filename': 'ogg0m404-kb82-20190321-0273-e91.fits.fz',
         'id': 11245132,
         'url': 'http://file_url',
-        'PROPID': 'LCOEPO2018B-002',
-        'REQNUM': 1756835,
-        'FILTER': 'B'
+        'proposal_id': 'LCOEPO2018B-002',
+        'request_id': 1756835,
+        'primary_optical_element': 'B'
     },
     'request_frames': {
         'count': 6,
         'results': [
             {
-                'OBSTYPE': 'EXPOSE',
+                'configuration_type': 'EXPOSE',
                 'filename': 'ogg0m404-kb82-20190321-0273-e91.fits.fz',
                 'id': 11245132,
                 'url': 'http://file_url_1',
-                'PROPID': 'LCOEPO2018B-002',
-                'REQNUM': 1756835,
-                'FILTER': 'B',
-                'RLEVEL': 91
+                'proposal_id': 'LCOEPO2018B-002',
+                'request_id': 1756835,
+                'primary_optical_element': 'B',
+                'reduction_level': 91
             },
             {
-                'OBSTYPE': 'EXPOSE',
+                'configuration_type': 'EXPOSE',
                 'filename': 'ogg0m404-kb82-20190321-0273-e00.fits.fz',
                 'id': 11245129,
                 'url': 'http://file_url_2',
-                'PROPID': 'LCOEPO2018B-002',
-                'REQNUM': 1756835,
-                'FILTER': 'B',
-                'RLEVEL': 0
+                'proposal_id': 'LCOEPO2018B-002',
+                'request_id': 1756835,
+                'primary_optical_element': 'B',
+                'reduction_level': 0
             },
             {
-                'OBSTYPE': 'EXPOSE',
+                'configuration_type': 'EXPOSE',
                 'filename': 'ogg0m404-kb82-20190321-0272-e91.fits.fz',
                 'id': 11245120,
                 'url': 'http://file_url_3',
-                'PROPID': 'LCOEPO2018B-002',
-                'REQNUM': 1756835,
-                'FILTER': 'V',
-                'RLEVEL': 91
+                'proposal_id': 'LCOEPO2018B-002',
+                'request_id': 1756835,
+                'primary_optical_element': 'V',
+                'reduction_level': 91
             },
             {
-                'OBSTYPE': 'EXPOSE',
+                'configuration_type': 'EXPOSE',
                 'filename': 'ogg0m404-kb82-20190321-0272-e00.fits.fz',
                 'id': 11245119,
                 'url': 'http://file_url_4',
-                'PROPID': 'LCOEPO2018B-002',
-                'REQNUM': 1756835,
-                'FILTER': 'V',
-                'RLEVEL': 0
+                'proposal_id': 'LCOEPO2018B-002',
+                'request_id': 1756835,
+                'primary_optical_element': 'V',
+                'reduction_level': 0
             },
             {
-                'OBSTYPE': 'EXPOSE',
+                'configuration_type': 'EXPOSE',
                 'filename': 'ogg0m404-kb82-20190321-0271-e91.fits.fz',
                 'id': 11245105,
                 'url': 'http://file_url_5',
-                'PROPID': 'LCOEPO2018B-002',
-                'REQNUM': 1756835,
-                'FILTER': 'rp',
-                'RLEVEL': 91
+                'proposal_id': 'LCOEPO2018B-002',
+                'request_id': 1756835,
+                'primary_optical_element': 'rp',
+                'reduction_level': 91
             },
             {
-                'OBSTYPE': 'EXPOSE',
+                'configuration_type': 'EXPOSE',
                 'filename': 'ogg0m404-kb82-20190321-0271-e00.fits.fz',
                 'id': 11245103,
                 'url': 'http://file_url_6',
-                'PROPID': 'LCOEPO2018B-002',
-                'REQNUM': 1756835,
-                'FILTER': 'rp',
-                'RLEVEL': 0
+                'proposal_id': 'LCOEPO2018B-002',
+                'request_id': 1756835,
+                'primary_optical_element': 'rp',
+                'reduction_level': 0
             },
         ]
     }
@@ -190,7 +190,7 @@ def test_generate_black_and_white_thumbnail_successfully(thumbservice_client, re
     call_count_after_2 = requests_mock.call_count
     for response in [response1, response2]:
         response_as_json = response.get_json()
-        assert response_as_json['propid'] == frame['PROPID']
+        assert response_as_json['propid'] == frame['proposal_id']
         assert 'url' in response_as_json
         assert response.status_code == 200
     # The resource will have been created in s3 on the first call, on the second call less work needs to
@@ -205,7 +205,7 @@ def test_generate_color_thumbnail_successfully(thumbservice_client, requests_moc
     frame = deepcopy(_test_data['frame'])
     request_frames = deepcopy(_test_data['request_frames'])
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
-    requests_mock.get(f'{TEST_API_URL}frames/?REQNUM={frame["REQNUM"]}&RLEVEL=91', json=request_frames)
+    requests_mock.get(f'{TEST_API_URL}frames/?request_id={frame["request_id"]}&reduction_level=91', json=request_frames)
     for request_frame in request_frames['results']:
         requests_mock.get(request_frame['url'], content=b'I Am Image')
     response1 = thumbservice_client.get(f'/{frame["id"]}/?color=true')
@@ -214,7 +214,7 @@ def test_generate_color_thumbnail_successfully(thumbservice_client, requests_moc
     call_count_after_2 = requests_mock.call_count
     for response in [response1, response2]:
         response_as_json = response.get_json()
-        assert response_as_json['propid'] == frame['PROPID']
+        assert response_as_json['propid'] == frame['proposal_id']
         assert 'url' in response_as_json
         assert response.status_code == 200
     # The resource will have been created in s3 on the first call, on the second call less work needs to
@@ -232,13 +232,13 @@ def test_image_align_fails_falls_back_to_original_image_list(thumbservice_client
     frame = deepcopy(_test_data['frame'])
     request_frames = deepcopy(_test_data['request_frames'])
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
-    requests_mock.get(f'{TEST_API_URL}frames/?REQNUM={frame["REQNUM"]}&RLEVEL=91', json=request_frames)
+    requests_mock.get(f'{TEST_API_URL}frames/?request_id={frame["request_id"]}&reduction_level=91', json=request_frames)
     for request_frame in request_frames['results']:
         requests_mock.get(request_frame['url'], content=b'I Am Image')
     response = thumbservice_client.get(f'/{frame["id"]}/?color=true')
     response_as_json = response.get_json()
     assert 'url' in response_as_json
-    assert response_as_json['propid'] == frame['PROPID']
+    assert response_as_json['propid'] == frame['proposal_id']
     assert response.status_code == 200
     assert len(list(tmp_path.glob('*'))) == 0
 
@@ -250,13 +250,13 @@ def test_one_image_doesnt_align_falls_back_to_original_image_list(thumbservice_c
     frame = deepcopy(_test_data['frame'])
     request_frames = deepcopy(_test_data['request_frames'])
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
-    requests_mock.get(f'{TEST_API_URL}frames/?REQNUM={frame["REQNUM"]}&RLEVEL=91', json=request_frames)
+    requests_mock.get(f'{TEST_API_URL}frames/?request_id={frame["request_id"]}&reduction_level=91', json=request_frames)
     for request_frame in request_frames['results']:
         requests_mock.get(request_frame['url'], content=b'I Am Image')
     response = thumbservice_client.get(f'/{frame["id"]}/?color=true')
     response_as_json = response.get_json()
     assert 'url' in response_as_json
-    assert response_as_json['propid'] == frame['PROPID']
+    assert response_as_json['propid'] == frame['proposal_id']
     assert response.status_code == 200
     assert len(list(tmp_path.glob('*'))) == 0
 
@@ -267,7 +267,7 @@ def test_all_filters_for_color_thumbnail_not_available(thumbservice_client, requ
     request_frames['results'].pop()
     request_frames['results'].pop()
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
-    requests_mock.get(f'{TEST_API_URL}frames/?REQNUM={frame["REQNUM"]}&RLEVEL=91', json=request_frames)
+    requests_mock.get(f'{TEST_API_URL}frames/?request_id={frame["request_id"]}&reduction_level=91', json=request_frames)
     response = thumbservice_client.get(f'/{frame["id"]}/?color=true')
     assert response.status_code == 404
     assert b'RVB frames not found' in response.data
@@ -277,7 +277,7 @@ def test_all_filters_for_color_thumbnail_not_available(thumbservice_client, requ
 def test_reduced_frames_for_color_thumbnail_not_available(thumbservice_client, requests_mock, s3_client, tmp_path):
     frame = deepcopy(_test_data['frame'])
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
-    requests_mock.get(f'{TEST_API_URL}frames/?REQNUM={frame["REQNUM"]}&RLEVEL=91', json={'results': []})
+    requests_mock.get(f'{TEST_API_URL}frames/?request_id={frame["request_id"]}&reduction_level=91', json={'results': []})
     response = thumbservice_client.get(f'/{frame["id"]}/?color=true')
     assert response.status_code == 404
     assert b'RVB frames not found' in response.data
@@ -286,28 +286,28 @@ def test_reduced_frames_for_color_thumbnail_not_available(thumbservice_client, r
 
 def test_cannot_generate_thumbnail_for_non_image_obstypes(thumbservice_client, requests_mock, tmp_path, s3_client):
     frame = deepcopy(_test_data['frame'])
-    frame['OBSTYPE'] = 'CATALOG'
+    frame['configuration_type'] = 'CATALOG'
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
     response = thumbservice_client.get(f'/{frame["id"]}/')
     assert response.status_code == 400
-    assert 'Cannot generate thumbnail for OBSTYPE=CATALOG' in response.get_json()['message']
+    assert 'Cannot generate thumbnail for configuration_type=CATALOG' in response.get_json()['message']
     assert len(list(tmp_path.glob('*'))) == 0
 
 
 def test_cannot_generate_color_thumbnail_for_all_valid_obstypes(thumbservice_client, requests_mock, tmp_path, s3_client):
     frame = deepcopy(_test_data['frame'])
-    frame['OBSTYPE'] = 'SPECTRUM'
+    frame['configuration_type'] = 'SPECTRUM'
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
     response = thumbservice_client.get(f'/{frame["id"]}/?color=true')
     assert response.status_code == 400
-    assert 'Cannot generate color thumbnail for OBSTYPE=SPECTRUM' in response.get_json()['message']
+    assert 'Cannot generate color thumbnail for configuration_type=SPECTRUM' in response.get_json()['message']
     assert len(list(tmp_path.glob('*'))) == 0
 
 
 def test_cannot_generate_thumbnail_for_non_fits_file(thumbservice_client, requests_mock, tmp_path, s3_client):
     frame = deepcopy(_test_data['frame'])
     frame['filename'] = 'OGG_calib_0001760408_ftn_20190331_58574.tar.gz'
-    frame['OBSTYPE'] = 'SPECTRUM'
+    frame['configuration_type'] = 'SPECTRUM'
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
     response = thumbservice_client.get(f'/{frame["id"]}/')
     assert response.status_code == 400
@@ -317,7 +317,7 @@ def test_cannot_generate_thumbnail_for_non_fits_file(thumbservice_client, reques
 
 def test_cannot_generate_color_thumbnail_not_associated_with_a_request(thumbservice_client, requests_mock, tmp_path, s3_client):
     frame = deepcopy(_test_data['frame'])
-    frame['REQNUM'] = None
+    frame['request_id'] = None
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
     response = thumbservice_client.get(f'/{frame["id"]}/?color=true')
     assert response.status_code == 400
@@ -327,7 +327,7 @@ def test_cannot_generate_color_thumbnail_not_associated_with_a_request(thumbserv
 
 def test_cannot_generate_color_thumbnail_with_incomplete_frame_info(thumbservice_client, requests_mock, tmp_path, s3_client):
     frame = deepcopy(_test_data['frame'])
-    del frame['REQNUM']
+    del frame['request_id']
     requests_mock.get(f'{TEST_API_URL}frames/{frame["id"]}/', json=frame)
     response = thumbservice_client.get(f'/{frame["id"]}', follow_redirects=True)
     assert response.status_code == 400
