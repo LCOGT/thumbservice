@@ -6,7 +6,7 @@ authors = ["OCS <ocs@lco.global>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
-numpy = "~1.18"
+numpy = "^1.18"
 Flask = "~1.0"
 Flask-Cors = "^3"
 requests = "~2.21"
