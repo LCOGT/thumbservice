@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 from pathlib import Path
 from copy import deepcopy
 from collections import namedtuple
