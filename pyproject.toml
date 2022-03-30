@@ -1,8 +1,26 @@
 [tool.poetry]
 name = "thumbservice"
-version = "2.16"
-description = "This is a flask application that generates thumbnails from data stored on the LCOGT Science Archive."
-authors = ["OCS <ocs@lco.global>"]
+version = "2.2.0"
+description = "This is a flask application that generates thumbnails from data stored in an OCS Science Archive."
+authors = ["Observatory Control System Project <ocs@lco.global>"]
+homepage = "https://observatorycontrolsystem.github.io"
+repository = "https://github.com/observatorycontrolsystem/thumbnail-service"
+keywords = [
+    "observations",
+    "astronomy",
+    "astrophysics",
+    "cosmology",
+    "science",
+]
+classifiers=[
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Scientific/Engineering :: Physics"
+]
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -19,3 +37,7 @@ pytest = "^6"
 requests-mock = "1.7.0"
 moto = "^2"
 astropy = "^5"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
