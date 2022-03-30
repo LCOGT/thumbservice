@@ -12,7 +12,7 @@ from thumbservice import common
 from thumbservice import thumbservice
 
 TEST_API_URL = 'https://test-archive-api.lco.gtn/'
-TEST_BUCKET = 'test_bucket'
+TEST_BUCKET = 'test-bucket'
 TEST_ACCESS_KEY = 'test_secret_key'
 TEST_SECRET_ACCESS_KEY = 'test_secret_access_key'
 
@@ -164,7 +164,7 @@ def thumbservice_client():
 def s3_client():
     # This should be passed in to all test functions to mock out calls to aws
     with mock_s3():
-        config = boto3.session.Config(region_name='us-west-2', signature_version='s3v4')
+        config = boto3.session.Config(signature_version='s3v4')
         s3 = boto3.client('s3', aws_access_key_id=TEST_ACCESS_KEY, aws_secret_access_key=TEST_SECRET_ACCESS_KEY, config=config)
         s3.create_bucket(Bucket=TEST_BUCKET)
         yield s3
