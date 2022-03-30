@@ -22,4 +22,4 @@ RUN apk --no-cache add freetype libjpeg-turbo libpng ttf-dejavu zlib \
         && pip install -r <(poetry export) \
         && apk --no-cache del .build-deps
 
-COPY ./ ./
+COPY . .
