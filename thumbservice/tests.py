@@ -99,8 +99,8 @@ def set_test_values(tmp_path):
     thumbservice.settings = common.Settings(
         settings={
             'TMP_DIR': tmp_path,
-            'ARCHIVE_API': TEST_API_URL,
-            'AWS_S3_BUCKET': TEST_BUCKET,
+            'ARCHIVE_API_URL': TEST_API_URL,
+            'AWS_BUCKET': TEST_BUCKET,
             'AWS_ACCESS_KEY_ID': TEST_ACCESS_KEY,
             'AWS_SECRET_ACCESS_KEY': TEST_SECRET_ACCESS_KEY
         }

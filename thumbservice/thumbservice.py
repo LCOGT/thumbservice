@@ -133,7 +133,7 @@ def upload_to_s3(key, jpg_path):
     client = get_s3_client()
     with open(jpg_path, 'rb') as f:
         client.put_object(
-            Bucket=settings.BUCKET,
+            Bucket=settings.AWS_BUCKET,
             Body=f,
             Key=key,
             ContentType='image/jpeg'
@@ -145,14 +145,14 @@ def generate_url(key):
     return client.generate_presigned_url(
         'get_object',
         ExpiresIn=3600 * 8,
-        Params={'Bucket': settings.BUCKET, 'Key': key}
+        Params={'Bucket': settings.AWS_BUCKET, 'Key': key}
     )
 
 
 def key_exists(key):
     client = get_s3_client()
     try:
-        client.head_object(Bucket=settings.BUCKET, Key=key)
+        client.head_object(Bucket=settings.AWS_BUCKET, Key=key)
         return True
     except:
         return False
@@ -163,7 +163,7 @@ def frames_for_requestnum(request_id, request, reduction_level):
         'Authorization': request.headers.get('Authorization')
     }
     params = {'request_id': request_id, 'reduction_level': reduction_level}
-    return get_response(f'{settings.ARCHIVE_API}frames/', params=params, headers=headers).json()['results']
+    return get_response(f'{settings.ARCHIVE_API_URL}frames/', params=params, headers=headers).json()['results']
 
 
 def rvb_frames(frames):
@@ -277,7 +277,7 @@ def bn_thumbnail(frame_basename):
         'Authorization': request.headers.get('Authorization')
     }
     params = {'basename': frame_basename}
-    frames = get_response(f'{settings.ARCHIVE_API}frames/', params=params, headers=headers).json()
+    frames = get_response(f'{settings.ARCHIVE_API_URL}frames/', params=params, headers=headers).json()
 
     if not frames['count'] == 1:
         raise ThumbnailAppException('Not found', status_code=404)
@@ -290,7 +290,7 @@ def thumbnail(frame_id):
     headers = {
         'Authorization': request.headers.get('Authorization')
     }
-    frame = get_response(f'{settings.ARCHIVE_API}frames/{frame_id}/', headers=headers).json()
+    frame = get_response(f'{settings.ARCHIVE_API_URL}frames/{frame_id}/', headers=headers).json()
 
     return handle_response(frame, request)
 

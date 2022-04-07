@@ -12,9 +12,9 @@ class Settings:
     def __init__(self, settings=None):
         self._settings = settings or {}
 
-        self.ARCHIVE_API = self.set_value('ARCHIVE_API', 'http://localhost/', True)
+        self.ARCHIVE_API_URL = self.set_value('ARCHIVE_API_URL', 'http://localhost/', True)
         self.TMP_DIR = self.set_value('TMP_DIR', '/tmp/', True)
-        self.BUCKET = self.set_value('AWS_S3_BUCKET', 'changeme')
+        self.AWS_BUCKET = self.set_value('AWS_BUCKET', 'changeme')
         self.AWS_ACCESS_KEY_ID = self.set_value('AWS_ACCESS_KEY_ID', 'changeme')
         self.AWS_SECRET_ACCESS_KEY = self.set_value('AWS_SECRET_ACCESS_KEY', 'changeme')
         self.REQUIRED_FRAME_VALIDATION_KEYS = self.get_tuple_from_environment('REQUIRED_FRAME_VALIDATION_KEYS', 'configuration_type,request_id,filename')

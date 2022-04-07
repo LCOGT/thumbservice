@@ -30,9 +30,9 @@ This project can be configured using the following environment variables:
 
 |Environment Variable| Description | Default |
 |--------------------|-------------|---------|
-| `ARCHIVE_API` | Archive API URL | http://localhost/
+| `ARCHIVE_API_URL` | Archive API URL | http://localhost/
 | `TMP_DIR` | Temporary directory for image operations | '/tmp/'
-| `AWS_S3_BUCKET` | AWS S3 Bucket to store thumbnails | 'changeme'
+| `AWS_BUCKET` | AWS S3 Bucket to store thumbnails | 'changeme'
 | `AWS_ACCESS_KEY_ID` | AWS Access Key ID for S3 Bucket | 'changeme'
 | `AWS_SECRET_ACCESS_KEY` | AWS Secret Access Key for S3 Bucket | 'changeme'
 | `REQUIRED_FRAME_VALIDATION_KEYS` | Keys from Archive API record required in order to create a thumbnail from the FITS image | 'configuration_type,request_id,filename'
