@@ -168,7 +168,7 @@ def frames_for_requestnum(request_id, request, reduction_level):
 
 
 def rvb_frames(frames):
-    PRIMARY_OPTICAL_ELEMENTS = {
+    FILTERS_FOR_COLORS = {
         'red': ['R', 'rp'],
         'visual': ['V'],
         'blue': ['B'],
@@ -177,7 +177,7 @@ def rvb_frames(frames):
     for color in ['red', 'visual', 'blue']:
         try:
             selected_frames.append(
-                next(f for f in frames if f['primary_optical_element'] in PRIMARY_OPTICAL_ELEMENTS[color])
+                next(f for f in frames if f['primary_optical_element'] in FILTERS_FOR_COLORS[color])
             )
         except StopIteration:
             raise ThumbnailAppException('RVB frames not found', status_code=404)
