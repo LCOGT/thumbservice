@@ -13,7 +13,7 @@ from fits2image.conversions import fits_to_jpg
 from fits_align.ident import make_transforms
 from fits_align.align import affineremap
 
-from common import settings, get_temp_filename_prefix
+from thumbservice.common import settings, get_temp_filename_prefix
 
 
 app = Flask(__name__, static_folder='static')
@@ -74,28 +74,23 @@ def get_response(url, params=None, headers=None):
 
 
 def can_generate_thumbnail_on(frame, request):
-    frame_has_required_validation_keys = all([key in frame.keys() for key in ['OBSTYPE', 'REQNUM', 'filename']])
+    frame_has_required_validation_keys = all([key in frame.keys() for key in settings.REQUIRED_FRAME_VALIDATION_KEYS])
     if not frame_has_required_validation_keys:
         return {'result': False, 'reason': 'Cannot generate thumbnail for given frame'}
 
-    valid_obstypes = [
-        'ARC', 'BIAS', 'BPM', 'DARK', 'DOUBLE', 'EXPERIMENTAL', 'EXPOSE', 'GUIDE', 'LAMPFLAT', 'SKYFLAT',
-        'SPECTRUM', 'STANDARD', 'TARGET', 'TRAILED'
-    ]
-    valid_obstypes_for_color_thumbs = ['EXPOSE', 'STANDARD']
-    obstype = frame.get('OBSTYPE').upper()
-    reqnum = frame.get('REQNUM')
+    configuration_type = frame.get('configuration_type').upper()
+    request_id = frame.get('request_id')
     is_color_request = request.args.get('color', 'false') == 'true'
     is_fits_file = any([frame.get('filename').endswith(ext) for ext in ['.fits', '.fits.fz']])
 
-    if obstype not in valid_obstypes:
-        return {'result': False, 'reason': f'Cannot generate thumbnail for OBSTYPE={obstype}'}
+    if configuration_type not in settings.VALID_CONFIGURATION_TYPES:
+        return {'result': False, 'reason': f'Cannot generate thumbnail for configuration_type={configuration_type}'}
 
-    if is_color_request and not reqnum:
+    if is_color_request and not request_id:
         return {'result': False, 'reason': 'Cannot generate color thumbnail for a frame that does not have a request'}
 
-    if is_color_request and obstype not in valid_obstypes_for_color_thumbs:
-        return {'result': False, 'reason': f'Cannot generate color thumbnail for OBSTYPE={obstype}'}
+    if is_color_request and configuration_type not in settings.VALID_CONFIGURATION_TYPES_FOR_COLOR_THUMBS:
+        return {'result': False, 'reason': f'Cannot generate color thumbnail for configuration_type={configuration_type}'}
 
     if not is_fits_file:
         return {'result': False, 'reason': 'Cannot generate thumbnail for non FITS-type frame'}
@@ -139,7 +134,7 @@ def upload_to_s3(key, jpg_path):
     client = get_s3_client()
     with open(jpg_path, 'rb') as f:
         client.put_object(
-            Bucket=settings.BUCKET,
+            Bucket=settings.AWS_BUCKET,
             Body=f,
             Key=key,
             ContentType='image/jpeg'
@@ -151,29 +146,29 @@ def generate_url(key):
     return client.generate_presigned_url(
         'get_object',
         ExpiresIn=3600 * 8,
-        Params={'Bucket': settings.BUCKET, 'Key': key}
+        Params={'Bucket': settings.AWS_BUCKET, 'Key': key}
     )
 
 
 def key_exists(key):
     client = get_s3_client()
     try:
-        client.head_object(Bucket=settings.BUCKET, Key=key)
+        client.head_object(Bucket=settings.AWS_BUCKET, Key=key)
         return True
     except:
         return False
 
 
-def frames_for_requestnum(reqnum, request, rlevel):
+def frames_for_requestnum(request_id, request, reduction_level):
     headers = {
         'Authorization': request.headers.get('Authorization')
     }
-    params = {'REQNUM': reqnum, 'RLEVEL': rlevel}
-    return get_response(f'{settings.ARCHIVE_API}frames/', params=params, headers=headers).json()['results']
+    params = {'request_id': request_id, 'reduction_level': reduction_level}
+    return get_response(f'{settings.ARCHIVE_API_URL}frames/', params=params, headers=headers).json()['results']
 
 
 def rvb_frames(frames):
-    FILTERS = {
+    FILTERS_FOR_COLORS = {
         'red': ['R', 'rp'],
         'visual': ['V'],
         'blue': ['B'],
@@ -182,7 +177,7 @@ def rvb_frames(frames):
     for color in ['red', 'visual', 'blue']:
         try:
             selected_frames.append(
-                next(f for f in frames if f['FILTER'] in FILTERS[color])
+                next(f for f in frames if f['primary_optical_element'] in FILTERS_FOR_COLORS[color])
             )
         except StopIteration:
             raise ThumbnailAppException('RVB frames not found', status_code=404)
@@ -250,7 +245,7 @@ def generate_thumbnail(frame, request):
             paths.set([save_temp_file(frame)])
         else:
             # Color thumbnails can only be generated on rlevel 91 images
-            reqnum_frames = frames_for_requestnum(frame['REQNUM'], request, rlevel=91)
+            reqnum_frames = frames_for_requestnum(frame['request_id'], request, reduction_level=91)
             paths.set([save_temp_file(frame) for frame in rvb_frames(reqnum_frames)])
             paths.set(reproject_files(paths.paths[0], paths.paths))
         jpg_path = convert_to_jpg(paths.paths, key, **params)
@@ -274,7 +269,7 @@ def handle_response(frame, request):
     if request.args.get('image'):
         return redirect(url)
     else:
-        return jsonify({'url': url, 'propid': frame['PROPID']})
+        return jsonify({'url': url, 'propid': frame['proposal_id']})
 
 
 @app.route('/<frame_basename>/')
@@ -283,7 +278,7 @@ def bn_thumbnail(frame_basename):
         'Authorization': request.headers.get('Authorization')
     }
     params = {'basename': frame_basename}
-    frames = get_response(f'{settings.ARCHIVE_API}frames/', params=params, headers=headers).json()
+    frames = get_response(f'{settings.ARCHIVE_API_URL}frames/', params=params, headers=headers).json()
 
     if not frames['count'] == 1:
         raise ThumbnailAppException('Not found', status_code=404)
@@ -296,7 +291,7 @@ def thumbnail(frame_id):
     headers = {
         'Authorization': request.headers.get('Authorization')
     }
-    frame = get_response(f'{settings.ARCHIVE_API}frames/{frame_id}/', headers=headers).json()
+    frame = get_response(f'{settings.ARCHIVE_API_URL}frames/{frame_id}/', headers=headers).json()
 
     return handle_response(frame, request)
 

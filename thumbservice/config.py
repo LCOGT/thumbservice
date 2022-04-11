@@ -1,7 +1,7 @@
 import os
 import glob
 
-from common import settings, get_temp_filename_prefix
+from thumbservice.common import settings, get_temp_filename_prefix
 
 
 def clean_up_files(worker_id):
