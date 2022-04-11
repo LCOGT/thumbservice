@@ -1,3 +1,5 @@
+NOTE: This project is now managed by the [OCS Organization](https://github.com/observatorycontrolsystem/). This repo is left as read-only.
+
 # Thumbnail service
 
 This is a flask application that generates thumbnails from data stored on the
